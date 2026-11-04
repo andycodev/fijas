@@ -144,10 +144,7 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
           <strong>Valor muy alto = desconfía.</strong> Por encima de +15% la app te avisa: casi siempre es una cuota desfasada o mal
           leída, o algo que el modelo no sabe (bajas, rotaciones). Compárala con tu <Betano /> antes de apostar.
         </li>
-        <li>
-          <strong>Calcular monto:</strong> escribe cuántos soles pondrías y verás cuánto cobras si aciertas, cuánto pierdes si fallas, la
-          ganancia esperada promedio y un monto recomendado según tu capital inicial y tus límites.
-        </li>
+        <li><strong>Toca el valor esperado</strong> (arriba a la izquierda de cada selección) para ver cómo se calcula, con los números de esa selección.</li>
       </ul>
     </details>
   </div>

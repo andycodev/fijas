@@ -17,7 +17,6 @@ const props = defineProps<{
   side: 'over' | 'under';
   odds: number;
   modelProbability?: number | null; // probabilidad del modelo para esta selección
-  initialStake?: number | null; // monto elegido en la calculadora
 }>();
 const emit = defineEmits<{ close: [] }>();
 
@@ -32,7 +31,7 @@ const balance = computed(() => cash.balance.value ?? Number(profile.value?.initi
 const base = profile.value
   ? Math.min(suggestedStake(profile.value.stake_mode, Number(profile.value.stake_value), Number(profile.value.initial_bankroll)), Math.max(balance.value, 0))
   : null;
-const stake = ref<number | null>(props.initialStake ?? base);
+const stake = ref<number | null>(base);
 const odds = ref(props.odds);
 const confirmed = ref(false);
 

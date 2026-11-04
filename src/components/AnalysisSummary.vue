@@ -7,7 +7,10 @@ import { MARKET_LABEL, selectionLabel } from '../lib/markets';
 import backtest from '../data/backtest.json';
 import BetDialog from './BetDialog.vue';
 import WhyPanel from './WhyPanel.vue';
-import StakeCalculator from './StakeCalculator.vue';
+import EvModal from './EvModal.vue';
+import HighValueNotice from './HighValueNotice.vue';
+import { InformationCircleIcon } from '@heroicons/vue/24/outline';
+import { HIGH_EV } from '../lib/stake';
 import type { OddsRow, UpcomingMatch } from '../types/db';
 
 const props = defineProps<{
@@ -30,7 +33,7 @@ const minPct = computed({
 
 const betting = ref<Selection | null>(null);
 const whyOpen = ref<Record<string, boolean>>({});
-const stakes = ref<Record<string, number | null>>({}); // monto elegido en la calculadora de cada oportunidad
+const evOpen = ref<Selection | null>(null); // selección cuya explicación del valor esperado está abierta
 
 const buckets = (market: string) =>
   (backtest.markets as Record<string, { buckets: CalibrationBucket[] }>)[market]?.buckets;
@@ -118,14 +121,20 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
       <li v-for="s in analysis.recommended" :key="s.key" class="card space-y-3 p-4">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
+            <button
+              type="button"
+              class="mb-2 inline-flex min-h-touch items-center gap-1.5 rounded-md bg-value/10 px-3 text-sm font-extrabold text-value"
+              aria-haspopup="dialog"
+              :aria-label="`Valor esperado ${evText(s.ev!)}. Ver cómo se calcula`"
+              @click="evOpen = s"
+            >
+              Valor esperado {{ evText(s.ev!) }}
+              <InformationCircleIcon class="h-5 w-5" aria-hidden="true" />
+            </button>
             <p class="text-xs text-ink/60">{{ s.match.league?.name }} · {{ when(s.match.kickoff_at) }}</p>
             <p class="truncate font-bold">{{ game(s) }}</p>
             <p class="font-semibold">{{ label(s) }}</p>
             <p class="text-[11px] text-ink/50">{{ MARKET_LABEL[s.market] }} · partido completo</p>
-          </div>
-          <div class="text-right">
-            <p class="text-[11px] font-semibold text-ink/60">Valor esperado</p>
-            <p class="text-xl font-extrabold text-value">{{ evText(s.ev!) }}</p>
           </div>
         </div>
 
@@ -158,7 +167,14 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
           <template v-if="days(s.latestGameAt) !== null"> · el más antiguo de los dos equipos fue hace {{ days(s.latestGameAt) }} días</template>
         </p>
 
-        <StakeCalculator v-model="stakes[s.key]" :selection="s" :threshold="valueThreshold" />
+        <HighValueNotice
+          v-if="s.ev! > HIGH_EV"
+          :ev="s.ev!"
+          :probability="s.probability"
+          :odds="s.betano!.odds"
+          :origin="s.betano!.origin"
+          :captured-at="s.betano!.capturedAt"
+        />
 
         <div class="flex flex-wrap items-center justify-between gap-2">
           <span class="text-xs font-bold" :class="CONF_CLASS[confidenceOf(s).level]">{{ CONF_LABEL[confidenceOf(s).level] }}</span>
@@ -202,6 +218,8 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
       </ul>
     </details>
 
+    <EvModal v-if="evOpen" :selection="evOpen" @close="evOpen = null" />
+
     <BetDialog
       v-if="betting && betting.betano"
       :match-id="betting.matchId"
@@ -212,7 +230,6 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
       :side="betting.side"
       :odds="betting.betano.odds"
       :model-probability="betting.probability"
-      :initial-stake="stakes[betting.key] ?? null"
       @close="betting = null"
     />
   </section>
