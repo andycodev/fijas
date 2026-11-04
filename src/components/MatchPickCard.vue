@@ -3,12 +3,14 @@ import { computed, reactive, ref } from 'vue';
 import { ChevronDownIcon } from '@heroicons/vue/24/outline';
 import { edge, signalFor, type Signal } from '../lib/value';
 import { useSaveOdds } from '../composables/usePicks';
+import BetDialog from './BetDialog.vue';
 import type { ManualOdds, UpcomingMatch } from '../types/db';
 
 const props = defineProps<{ match: UpcomingMatch; odds: ManualOdds[]; threshold: number }>();
 
 const open = ref(false);
 const save = useSaveOdds();
+const betting = ref<{ pickId: number; line: number; side: 'over' | 'under'; odds: number } | null>(null);
 
 const projection = computed(() => props.match.picks[0]?.projection ?? null);
 const kickoff = computed(() =>
@@ -89,6 +91,14 @@ const fmtOdds = (o: number) => o.toFixed(2);
                 {{ SIGNAL_LABEL[ev.signal] }} {{ (ev.value * 100).toFixed(1) }}%
               </span>
             </template>
+            <button
+              v-if="inputs[p.line]!.over && inputs[p.line]!.over! > 1"
+              type="button"
+              class="btn w-full !min-h-9 text-xs"
+              @click="betting = { pickId: p.id, line: p.line, side: 'over', odds: inputs[p.line]!.over! }"
+            >
+              Apostar
+            </button>
           </div>
 
           <div class="space-y-1">
@@ -109,6 +119,14 @@ const fmtOdds = (o: number) => o.toFixed(2);
                 {{ SIGNAL_LABEL[ev.signal] }} {{ (ev.value * 100).toFixed(1) }}%
               </span>
             </template>
+            <button
+              v-if="inputs[p.line]!.under && inputs[p.line]!.under! > 1"
+              type="button"
+              class="btn w-full !min-h-9 text-xs"
+              @click="betting = { pickId: p.id, line: p.line, side: 'under', odds: inputs[p.line]!.under! }"
+            >
+              Apostar
+            </button>
           </div>
         </div>
       </div>
@@ -117,5 +135,15 @@ const fmtOdds = (o: number) => o.toFixed(2);
         No se pudo guardar la cuota.
       </p>
     </div>
+    <BetDialog
+      v-if="betting"
+      :match-id="match.id"
+      :pick-id="betting.pickId"
+      :match-label="`${match.home?.name} vs ${match.away?.name}`"
+      :line="betting.line"
+      :side="betting.side"
+      :odds="betting.odds"
+      @close="betting = null"
+    />
   </article>
 </template>

@@ -88,3 +88,33 @@ export async function generatePicks(db: Db, log: (s: string) => void = console.l
 }
 
 if (isMain(import.meta.url)) await generatePicks(createServiceClient());
+
+// Rellena el resultado real de los picks de partidos ya terminados.
+// hit = true cuando "más de" la línea acertó (córners reales > línea); false en caso contrario.
+export async function settlePicks(db: Db, log: (s: string) => void = console.log) {
+  const { data, error } = await db
+    .from('picks')
+    .select('match_id, matches!inner(status, match_stats!inner(home_corners_total, away_corners_total))')
+    .is('actual_result', null)
+    .eq('matches.status', 'finished')
+    .not('matches.match_stats.home_corners_total', 'is', null)
+    .not('matches.match_stats.away_corners_total', 'is', null);
+  if (error) throw new Error(error.message);
+
+  const totals = new Map<number, number>();
+  for (const p of data as any[]) {
+    const s = Array.isArray(p.matches.match_stats) ? p.matches.match_stats[0] : p.matches.match_stats;
+    totals.set(p.match_id, s.home_corners_total + s.away_corners_total);
+  }
+  for (const [matchId, total] of totals) {
+    const base = db.from('picks').update({ actual_result: total }).eq('match_id', matchId).is('actual_result', null);
+    const { error: e1 } = await base;
+    if (e1) throw new Error(e1.message);
+    const { error: e2 } = await db.from('picks').update({ hit: true }).eq('match_id', matchId).lt('line', total);
+    if (e2) throw new Error(e2.message);
+    const { error: e3 } = await db.from('picks').update({ hit: false }).eq('match_id', matchId).gt('line', total);
+    if (e3) throw new Error(e3.message);
+  }
+  log(`Picks cerrados con resultado real: ${totals.size} partidos`);
+  return { settled: totals.size };
+}

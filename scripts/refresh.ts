@@ -4,7 +4,7 @@
 import { createServiceClient, isMain } from './db.ts';
 import { loadFootballData } from './load-football-data.ts';
 import { syncFixtures } from './sync-fixtures.ts';
-import { generatePicks } from './picks.ts';
+import { generatePicks, settlePicks } from './picks.ts';
 
 const currentSeason = () => {
   const now = new Date();
@@ -13,11 +13,13 @@ const currentSeason = () => {
 
 export async function refreshAll(log: (s: string) => void = console.log) {
   const db = createServiceClient();
-  log('1/3 Resultados recientes (Football-Data)…');
+  log('1/4 Resultados recientes (Football-Data)…');
   await loadFootballData(db, [currentSeason()], log);
-  log('\n2/3 Partidos de hoy y mañana (API-Football)…');
+  log('\n2/4 Resultado real de picks anteriores…');
+  await settlePicks(db, log);
+  log('\n3/4 Partidos de hoy y mañana (API-Football)…');
   const fixtures = await syncFixtures(db, 1, log);
-  log('\n3/3 Picks…');
+  log('\n4/4 Picks…');
   const picks = await generatePicks(db, log);
   return { fixtures, picks };
 }
