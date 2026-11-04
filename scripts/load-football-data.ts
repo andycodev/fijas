@@ -9,7 +9,8 @@ const seasons = (process.argv[2] ?? '2022,2023,2024,2025,2026').split(',').map(N
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) throw new Error('Faltan SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env');
-const db = createClient(url, key, { auth: { persistSession: false } });
+// Node 20 no trae WebSocket nativo y estos scripts no usan tiempo real: transporte vacío para que createClient no falle.
+const db = createClient(url, key, { auth: { persistSession: false }, realtime: { transport: class {} as never } });
 
 // CSV simple (Football-Data no usa comillas con comas internas en estas columnas).
 function parseCsv(text: string): Record<string, string>[] {
