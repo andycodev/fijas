@@ -73,7 +73,7 @@ for (const season of seasons) {
     if (m2) throw m2;
     const matchId = new Map(matches!.map((m) => [`${m.home_team_id}-${m.away_team_id}`, m.id as number]));
 
-    // Córners totales (HC/AC) y goles (FTHG/FTAG total, HTHG/HTAG 1.er tiempo).
+    // Córners totales (HC/AC) y goles totales (FTHG/FTAG).
     // Lo que el CSV no trae queda en null: no se inventa nada. Sin ningún dato, no hay fila.
     const stats = rows.flatMap((r) => {
       const id = matchId.get(`${teamId.get(r.HomeTeam)}-${teamId.get(r.AwayTeam)}`);
@@ -81,7 +81,6 @@ for (const season of seasons) {
         match_id: id,
         home_corners_total: toInt(r.HC), away_corners_total: toInt(r.AC),
         home_goals_total: toInt(r.FTHG), away_goals_total: toInt(r.FTAG),
-        home_goals_1h: toInt(r.HTHG), away_goals_1h: toInt(r.HTAG),
         source: 'football_data', has_half_detail: false,
       };
       const hasData = [row.home_corners_total, row.home_goals_total].some((v) => v !== null);
