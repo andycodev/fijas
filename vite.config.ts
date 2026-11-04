@@ -1,5 +1,20 @@
 import vue from '@vitejs/plugin-vue';
-import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { defineConfig, loadEnv, normalizePath, type Plugin } from 'vite';
+
+// Tailwind lee tailwind.config.js solo al arrancar. Sin esto, tras cambiar colores o ajustes hay que reiniciar a mano
+// `pnpm dev` y, mientras tanto, aparecen errores como «la clase bg-surface no existe».
+function restartOnTailwindConfig(): Plugin {
+  const file = normalizePath(`${process.cwd()}/tailwind.config.js`);
+  return {
+    name: 'restart-on-tailwind-config',
+    configureServer(server) {
+      server.watcher.add(file);
+      server.watcher.on('change', (changed) => {
+        if (normalizePath(changed) === file) void server.restart();
+      });
+    },
+  };
+}
 
 // Tipos mínimos de los módulos cargados en el servidor (los scripts no se revisan con vue-tsc).
 interface DbModule {
@@ -79,7 +94,7 @@ function localApi(mode: string): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  plugins: [vue(), localApi(mode)],
+  plugins: [vue(), localApi(mode), restartOnTailwindConfig()],
   build: {
     cssMinify: false,
   },
