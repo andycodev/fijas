@@ -2,7 +2,7 @@
 import Betano from './Betano.vue';
 import { computed, reactive, ref } from 'vue';
 import { ChevronDownIcon } from '@heroicons/vue/24/outline';
-import { MIN_ODDS_TARGET, signalFor, type Signal } from '../lib/value';
+import { signalFor, type Signal } from '../lib/value';
 import { BAND_CLASS, BAND_LABEL } from '../lib/probability';
 import { MARKET_LABEL } from '../lib/markets';
 import { confidenceFor, listSelections, type CalibrationBucket, type Confidence, type Selection } from '../lib/opportunities';
@@ -137,7 +137,6 @@ function persist(line: number) {
             <template v-if="s.ev !== null"> · valor <strong :class="s.ev >= 0 ? 'text-value' : 'text-novalue'">{{ evText(s.ev) }}</strong></template>
             · {{ s.betano.odds >= s.fairOdds ? '+' : '−' }}{{ Math.abs(s.betano.odds - s.fairOdds).toFixed(2) }} frente a la justa
             <template v-if="signalOf(s) !== 'green'"> · para valer la pena debería pagar al menos <strong>{{ odds2(needed(s)) }}</strong></template>
-            <template v-if="s.betano.odds < MIN_ODDS_TARGET"> · bajo tu mínimo de {{ odds2(MIN_ODDS_TARGET) }}</template>
             <span class="block text-[11px] text-ink/50">
               <template v-if="s.betano.origin === 'manual'">Cuota escrita por ti (confirmada)</template>
               <template v-else><Betano /> vía proveedor · {{ fmtTime(s.betano.capturedAt) }} · sin verificar</template>

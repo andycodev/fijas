@@ -4,7 +4,6 @@ import { computed, ref } from 'vue';
 import { analyze, confidenceFor, type CalibrationBucket, type Confidence, type Selection } from '../lib/opportunities';
 import { BAND_CLASS, BAND_LABEL } from '../lib/probability';
 import { MARKET_LABEL, selectionLabel } from '../lib/markets';
-import { MIN_ODDS_TARGET } from '../lib/value';
 import backtest from '../data/backtest.json';
 import BetDialog from './BetDialog.vue';
 import WhyPanel from './WhyPanel.vue';
@@ -155,7 +154,6 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
         <p class="text-[11px] text-ink/60">
           Datos: {{ s.gamesHome ?? '?' }} y {{ s.gamesAway ?? '?' }} partidos
           <template v-if="days(s.latestGameAt) !== null"> · el más antiguo de los dos equipos fue hace {{ days(s.latestGameAt) }} días</template>
-          <template v-if="s.betano!.odds < MIN_ODDS_TARGET"> · cuota bajo tu mínimo de {{ MIN_ODDS_TARGET.toFixed(2) }}</template>
         </p>
 
         <p v-if="s.ev! > 0.15" class="text-[11px] font-semibold text-marginal">

@@ -14,6 +14,11 @@
 }
 
 @layer components {
+  /* La palabra «Betano»: siempre en negrita y con el color de la marca. */
+  .betano-word {
+    color: #ff3c00;
+    font-weight: 800;
+  }
   .card {
     @apply rounded-lg border border-line bg-white;
   }

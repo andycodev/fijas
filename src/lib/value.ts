@@ -26,5 +26,3 @@ export function riskFor(probability: number): Risk {
   if (probability >= 0.55) return 'medium';
   return 'high';
 }
-
-export const MIN_ODDS_TARGET = 1.2;
