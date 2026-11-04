@@ -1,13 +1,16 @@
 // Backtest del modelo de córners: predice cada partido con la información anterior a su fecha.
 // Uso: npx tsx --env-file=.env scripts/backtest.ts
 import { createServiceClient } from './db.ts';
-import { loadGames } from './history.ts';
+import { loadGames, type CountMarket } from './history.ts';
 import { fitDispersion, probOver, projectTotal, type ModelParams, type TeamGame } from './model.ts';
 
-const games = await loadGames(createServiceClient());
-console.log(`Partidos con córners: ${games.length}`);
+// Uso: npx tsx --env-file=.env scripts/backtest.ts [corners_total|goals_total]
+const MARKET = (process.argv[2] ?? 'corners_total') as CountMarket;
+const games = await loadGames(createServiceClient(), MARKET);
+console.log(`Partidos con dato: ${games.length}`);
 
-const LINES = [8.5, 9.5, 10.5, 11.5];
+const LINES = MARKET === 'goals_total' ? [0.5, 1.5, 2.5, 3.5] : [8.5, 9.5, 10.5, 11.5];
+const CALIB_LINE = MARKET === 'goals_total' ? 2.5 : 9.5;
 const FIRST_EVAL_SEASON = 2024; // 2022 y 2023 sirven de arranque del historial
 const MIN_GAMES = 8;
 
@@ -21,11 +24,11 @@ function run(params: ModelParams): Pred[] {
     const hh = hist.get(g.home) ?? [], ah = hist.get(g.away) ?? [];
     if (n >= 300 && hh.length >= MIN_GAMES && ah.length >= MIN_GAMES && g.season >= FIRST_EVAL_SEASON) {
       const ref = { homeMean: sumH / n, awayMean: sumA / n };
-      out.push({ season: g.season, mean: projectTotal(hh, ah, ref, params).total, baseMean: ref.homeMean + ref.awayMean, actual: g.hc + g.ac });
+      out.push({ season: g.season, mean: projectTotal(hh, ah, ref, params).total, baseMean: ref.homeMean + ref.awayMean, actual: g.h + g.a });
     }
-    hist.set(g.home, [...hh, { corners_for: g.hc, corners_against: g.ac }]);
-    hist.set(g.away, [...ah, { corners_for: g.ac, corners_against: g.hc }]);
-    sumH += g.hc; sumA += g.ac; n++;
+    hist.set(g.home, [...hh, { corners_for: g.h, corners_against: g.a }]);
+    hist.set(g.away, [...ah, { corners_for: g.a, corners_against: g.h }]);
+    sumH += g.h; sumA += g.a; n++;
   }
   return out;
 }
@@ -67,15 +70,15 @@ for (const season of [...new Set(best!.preds.map((p) => p.season))].sort()) {
   console.log(`  temporada ${season}: n=${sub.length} modelo logloss=${f(m.logloss)} vs base ${f(b.logloss)}`);
 }
 
-console.log('\nCalibración, línea 9.5 (probabilidad prevista de "más de 9.5" vs frecuencia real):');
+console.log(`\nCalibración, línea ${CALIB_LINE} (probabilidad prevista de "más de ${CALIB_LINE}" vs frecuencia real):`);
 const buckets = [0, 0.3, 0.4, 0.5, 0.6, 0.7, 1.01];
 for (let i = 0; i < buckets.length - 1; i++) {
   const sel = best!.preds.filter((p) => {
-    const pr = probOver(9.5, p.mean, best!.r);
+    const pr = probOver(CALIB_LINE, p.mean, best!.r);
     return pr >= buckets[i]! && pr < buckets[i + 1]!;
   });
   if (!sel.length) continue;
-  const predAvg = sel.reduce((s, p) => s + probOver(9.5, p.mean, best!.r), 0) / sel.length;
-  const real = sel.filter((p) => p.actual > 9.5).length / sel.length;
+  const predAvg = sel.reduce((s, p) => s + probOver(CALIB_LINE, p.mean, best!.r), 0) / sel.length;
+  const real = sel.filter((p) => p.actual > CALIB_LINE).length / sel.length;
   console.log(`  [${buckets[i]}–${Math.min(buckets[i + 1]!, 1)}) n=${String(sel.length).padStart(4)}  previsto=${(predAvg * 100).toFixed(1)}%  real=${(real * 100).toFixed(1)}%`);
 }

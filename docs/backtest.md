@@ -1,13 +1,15 @@
-# Backtest del modelo de córners (v1)
+# Backtest de los modelos (partido completo)
 
-Generado con `npx tsx --env-file=.env scripts/backtest.ts` el 2026-11-04. Cada partido se predice usando solo los partidos anteriores a su fecha (2024-25 en adelante; 2022-23 y 2023-24 sirven de arranque del historial).
+Generado el 2026-11-04 con `npx tsx --env-file=.env scripts/backtest.ts [corners_total|goals_total]`. Cada partido se predice usando solo los partidos anteriores a su fecha (2024-25 en adelante; 2022-23 y 2023-24 sirven de arranque).
 
-- logloss y brier: menor es mejor.
-- MAE: error medio en córners por partido.
+- logloss y brier: menor es mejor. MAE: error medio por partido.
 - "base" = predecir siempre la media de la liga, sin mirar a los equipos.
+- Parámetros elegidos en ambos mercados: últimos 10 partidos por equipo y encogimiento K=20 (las mejores combinaciones difieren muy poco).
+
+## Córners totales
 
 ```
-Partidos con córners: 6154
+Partidos con dato: 6154
 
 K = peso de la media de la liga (en partidos) · N = 10 · líneas 8.5, 9.5, 10.5, 11.5
 N=10 K= 0  n=3114  r=23.9  modelo logloss=0.6881 brier=0.2430 MAE=2.892  | base (sin equipos) logloss=0.6561 brier=0.2319 MAE=2.755
@@ -34,4 +36,30 @@ Calibración, línea 9.5 (probabilidad prevista de "más de 9.5" vs frecuencia r
   [0.7–1) n=  23  previsto=71.6%  real=73.9%
 ```
 
-Parámetros elegidos: últimos 10 partidos por equipo y encogimiento K=20 (la diferencia con las mejores combinaciones es mínima).
+## Goles totales (distribución de Poisson: no hay sobredispersión)
+
+```
+Partidos con dato: 6155
+
+K = peso de la media de la liga (en partidos) · N = 10 · líneas 0.5, 1.5, 2.5, 3.5
+N=10 K= 0  n=3115  r=21.7  modelo logloss=0.5479 brier=0.1841 MAE=1.412  | base (sin equipos) logloss=0.5161 brier=0.1728 MAE=1.317
+N=10 K= 5  n=3115  r=∞  modelo logloss=0.5211 brier=0.1744 MAE=1.330  | base (sin equipos) logloss=0.5161 brier=0.1728 MAE=1.317
+N=10 K=10  n=3115  r=∞  modelo logloss=0.5133 brier=0.1715 MAE=1.310  | base (sin equipos) logloss=0.5161 brier=0.1728 MAE=1.317
+N=10 K=20  n=3115  r=∞  modelo logloss=0.5100 brier=0.1703 MAE=1.303  | base (sin equipos) logloss=0.5161 brier=0.1728 MAE=1.317
+N=10 K=40  n=3115  r=∞  modelo logloss=0.5104 brier=0.1705 MAE=1.302  | base (sin equipos) logloss=0.5161 brier=0.1728 MAE=1.317
+N=20 K=20  n=3115  r=∞  modelo logloss=0.5095 brier=0.1700 MAE=1.301  | base (sin equipos) logloss=0.5161 brier=0.1728 MAE=1.317
+N=20 K=40  n=3115  r=∞  modelo logloss=0.5086 brier=0.1697 MAE=1.299  | base (sin equipos) logloss=0.5161 brier=0.1728 MAE=1.317
+N=30 K=40  n=3115  r=∞  modelo logloss=0.5076 brier=0.1693 MAE=1.298  | base (sin equipos) logloss=0.5161 brier=0.1728 MAE=1.317
+
+Mejor combinación por logloss: N=30 K=40
+  temporada 2024: n=1391 modelo logloss=0.5100 vs base 0.5192
+  temporada 2025: n=1407 modelo logloss=0.5056 vs base 0.5141
+  temporada 2026: n=317 modelo logloss=0.5057 vs base 0.5152
+
+Calibración, línea 2.5 (probabilidad prevista de "más de 2.5" vs frecuencia real):
+  [0.3–0.4) n= 104  previsto=38.3%  real=46.2%
+  [0.4–0.5) n=1049  previsto=46.0%  real=47.7%
+  [0.5–0.6) n=1380  previsto=54.8%  real=55.0%
+  [0.6–0.7) n= 547  previsto=63.5%  real=62.5%
+  [0.7–1) n=  35  previsto=72.8%  real=80.0%
+```
