@@ -15,7 +15,7 @@ const props = defineProps<{ match: UpcomingMatch; market: Market; odds: OddsRow[
 const open = ref(false);
 const showAll = ref(false);
 const save = useSaveOdds();
-const betting = ref<{ pickId: number; line: number; side: 'over' | 'under'; odds: number } | null>(null);
+const betting = ref<{ pickId: number; line: number; side: 'over' | 'under'; odds: number; probability: number } | null>(null);
 
 const picks = computed<PickLine[]>(() => props.match.picks.filter((p) => p.market === props.market));
 const projection = computed(() => picks.value[0]?.projection ?? null);
@@ -131,7 +131,7 @@ const fmtOdds = (o: number) => o.toFixed(2);
                 <button
                   type="button"
                   class="btn !min-h-9 !px-3 text-xs"
-                  @click="betting = { pickId: p.id, line: p.line, side: s.side, odds: s.betano.odds }"
+                  @click="betting = { pickId: p.id, line: p.line, side: s.side, odds: s.betano.odds, probability: s.probability }"
                 >
                   Apostar
                 </button>
@@ -176,6 +176,7 @@ const fmtOdds = (o: number) => o.toFixed(2);
       :line="betting.line"
       :side="betting.side"
       :odds="betting.odds"
+      :model-probability="betting.probability"
       @close="betting = null"
     />
   </article>

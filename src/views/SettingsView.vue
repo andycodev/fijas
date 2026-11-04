@@ -22,7 +22,9 @@ const form = reactive({
   stake_value: 2,
   threshold_pct: 5,
   daily_bet_limit: 3,
-  pause_level: 0,
+  daily_exposure_pct: 10,
+  monthly_loss_limit_pct: 20,
+  losing_streak_alert: 3,
   active_league_ids: [] as number[],
   active_markets: [] as Market[],
 });
@@ -36,7 +38,9 @@ watch(
     form.stake_value = Number(p.stake_value);
     form.threshold_pct = Math.round(Number(p.value_threshold) * 10000) / 100;
     form.daily_bet_limit = p.daily_bet_limit;
-    form.pause_level = p.pause_level;
+    form.daily_exposure_pct = Number(p.daily_exposure_pct);
+    form.monthly_loss_limit_pct = Number(p.monthly_loss_limit_pct);
+    form.losing_streak_alert = p.losing_streak_alert;
     form.active_league_ids = [...p.active_league_ids];
     form.active_markets = [...p.active_markets];
   },
@@ -53,7 +57,9 @@ async function save() {
     stake_value: form.stake_value,
     value_threshold: form.threshold_pct / 100,
     daily_bet_limit: form.daily_bet_limit,
-    pause_level: form.pause_level,
+    daily_exposure_pct: form.daily_exposure_pct,
+    monthly_loss_limit_pct: form.monthly_loss_limit_pct,
+    losing_streak_alert: form.losing_streak_alert,
     active_league_ids: form.active_league_ids,
     active_markets: form.active_markets,
   });
@@ -74,7 +80,7 @@ async function save() {
       <h2 class="font-bold">Bankroll y montos</h2>
 
       <label class="block space-y-1">
-        <span class="text-xs font-semibold">Bankroll inicial</span>
+        <span class="text-xs font-semibold">Capital inicial (capital protegido)</span>
         <input v-model.number="form.initial_bankroll" type="number" min="0" step="0.01" required class="field" />
       </label>
 
@@ -94,7 +100,7 @@ async function save() {
 
       <label class="block space-y-1">
         <span class="text-xs font-semibold">
-          {{ form.stake_mode === 'percent' ? 'Porcentaje del bankroll por apuesta (%)' : 'Monto fijo por apuesta' }}
+          {{ form.stake_mode === 'percent' ? 'Porcentaje del capital inicial por apuesta (%)' : 'Monto fijo por apuesta' }}
         </span>
         <input v-model.number="form.stake_value" type="number" min="0.01" step="0.01" required class="field" />
       </label>
@@ -114,9 +120,24 @@ async function save() {
       </label>
 
       <label class="block space-y-1">
-        <span class="text-xs font-semibold">Nivel de pausa (0 = sin pausa)</span>
-        <input v-model.number="form.pause_level" type="number" min="0" step="1" required class="field" />
+        <span class="text-xs font-semibold">Exposición máxima por día (% del capital inicial)</span>
+        <input v-model.number="form.daily_exposure_pct" type="number" min="0.1" step="0.1" required class="field" />
       </label>
+
+      <label class="block space-y-1">
+        <span class="text-xs font-semibold">Límite de pérdida mensual (% del capital inicial)</span>
+        <input v-model.number="form.monthly_loss_limit_pct" type="number" min="0.1" step="0.1" required class="field" />
+      </label>
+
+      <label class="block space-y-1">
+        <span class="text-xs font-semibold">Avisar tras esta cantidad de apuestas perdidas seguidas</span>
+        <input v-model.number="form.losing_streak_alert" type="number" min="1" step="1" required class="field" />
+      </label>
+
+      <p class="text-xs text-ink/60">
+        Los límites se calculan sobre tu capital inicial, no sobre el saldo, para que no crezcan al ganar. Estos valores son
+        puntos de partida: ajústalos a lo que estés dispuesto a perder.
+      </p>
     </section>
 
     <section class="card space-y-3 p-4">

@@ -89,6 +89,7 @@ const time = (iso: string) =>
       :line="betting.line"
       :side="betting.side"
       :odds="betting.odds"
+      :model-probability="betting.probability"
       @close="betting = null"
     />
   </section>

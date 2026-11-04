@@ -11,6 +11,9 @@ export interface Profile {
   pause_level: number;
   active_league_ids: number[];
   active_markets: Market[];
+  daily_exposure_pct: number;
+  monthly_loss_limit_pct: number;
+  losing_streak_alert: number;
 }
 
 export interface League {
@@ -84,6 +87,7 @@ export interface Bet {
   status: 'open' | 'closed' | 'confirmed' | 'void';
   actual_corners: number | null;
   actual_goals: number | null;
+  model_probability: number | null;
   result: 'won' | 'lost' | 'void' | null;
   profit_loss: number | null;
   placed_at: string;
