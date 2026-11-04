@@ -73,18 +73,25 @@ for (const season of seasons) {
     if (m2) throw m2;
     const matchId = new Map(matches!.map((m) => [`${m.home_team_id}-${m.away_team_id}`, m.id as number]));
 
-    // Córners totales (HC/AC). Sin HC/AC no se inventa nada: ese partido queda sin fila en match_stats.
+    // Córners totales (HC/AC) y goles (FTHG/FTAG total, HTHG/HTAG 1.er tiempo).
+    // Lo que el CSV no trae queda en null: no se inventa nada. Sin ningún dato, no hay fila.
     const stats = rows.flatMap((r) => {
-      const hc = toInt(r.HC), ac = toInt(r.AC);
       const id = matchId.get(`${teamId.get(r.HomeTeam)}-${teamId.get(r.AwayTeam)}`);
-      if (hc === null || ac === null || !id) return [];
-      return [{ match_id: id, home_corners_total: hc, away_corners_total: ac, source: 'football_data', has_half_detail: false }];
+      const row = {
+        match_id: id,
+        home_corners_total: toInt(r.HC), away_corners_total: toInt(r.AC),
+        home_goals_total: toInt(r.FTHG), away_goals_total: toInt(r.FTAG),
+        home_goals_1h: toInt(r.HTHG), away_goals_1h: toInt(r.HTAG),
+        source: 'football_data', has_half_detail: false,
+      };
+      const hasData = [row.home_corners_total, row.home_goals_total].some((v) => v !== null);
+      return id && hasData ? [row] : [];
     });
     // ignoreDuplicates: no pisa filas ya completadas con detalle por tiempo desde API-Football.
     const { error: serr } = await db.from('match_stats').upsert(stats, { onConflict: 'match_id', ignoreDuplicates: true });
     if (serr) throw serr;
 
-    console.log(`${league.name} ${season}: ${rows.length} filas CSV, ${matchRows.length} partidos, ${stats.length} con córners (${rows.length - stats.length} sin HC/AC)`);
+    console.log(`${league.name} ${season}: ${rows.length} filas CSV, ${matchRows.length} partidos, ${stats.length} con estadísticas (${rows.length - stats.length} sin datos)`);
     await new Promise((r) => setTimeout(r, 1000)); // cortesía con el servidor
   }
 }
