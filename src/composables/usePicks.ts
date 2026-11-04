@@ -2,7 +2,7 @@ import { computed } from 'vue';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { supabase } from '../services/supabase';
 import { useAuthStore } from '../stores/auth';
-import type { ManualOdds, UpcomingMatch } from '../types/db';
+import type { ManualOdds, Market, UpcomingMatch } from '../types/db';
 
 const HOURS_AHEAD = 72;
 
@@ -20,13 +20,13 @@ export function useUpcomingMatches() {
         .eq('status', 'scheduled')
         .gte('kickoff_at', from)
         .lte('kickoff_at', to)
-        .eq('picks.market', 'corners_total')
         .order('kickoff_at');
       if (error) throw error;
       // Solo la versión de modelo más reciente de cada partido, y las líneas en orden.
       return (data as unknown as UpcomingMatch[]).map((m) => {
-        const latest = m.picks.map((p) => p.model_version).sort().at(-1);
-        return { ...m, picks: m.picks.filter((p) => p.model_version === latest).sort((a, b) => a.line - b.line) };
+        const latest = new Map<string, string>();
+        for (const pk of m.picks) if (!latest.has(pk.market) || pk.model_version > latest.get(pk.market)!) latest.set(pk.market, pk.model_version);
+        return { ...m, picks: m.picks.filter((pk) => pk.model_version === latest.get(pk.market)).sort((a, b) => a.line - b.line) };
       });
     },
   });
@@ -54,7 +54,7 @@ export function useSaveOdds() {
   const auth = useAuthStore();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (o: { match_id: number; line: number; over: number | null; under: number | null }) => {
+    mutationFn: async (o: { match_id: number; market: Market; line: number; over: number | null; under: number | null }) => {
       const userId = auth.user!.id;
       const del = await supabase
         .from('odds')
@@ -62,14 +62,14 @@ export function useSaveOdds() {
         .eq('origin', 'manual')
         .eq('bookmaker', 'betano')
         .eq('match_id', o.match_id)
-        .eq('market', 'corners_total')
+        .eq('market', o.market)
         .eq('line', o.line);
       if (del.error) throw del.error;
       if (o.over === null && o.under === null) return;
       const { error } = await supabase.from('odds').insert({
         match_id: o.match_id,
         bookmaker: 'betano',
-        market: 'corners_total',
+        market: o.market,
         line: o.line,
         over_odds: o.over,
         under_odds: o.under,

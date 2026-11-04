@@ -4,10 +4,13 @@ import { useBets, useCreateBet } from '../composables/useBets';
 import { useCash } from '../composables/useCash';
 import { suggestedStake } from '../lib/settle';
 import { formatMoney } from '../lib/format';
+import { selectionLabel } from '../lib/markets';
+import type { Market } from '../types/db';
 
 const props = defineProps<{
   matchId: number;
   pickId: number | null;
+  market: Market;
   matchLabel: string;
   line: number;
   side: 'over' | 'under';
@@ -35,6 +38,7 @@ async function submit() {
   await create.mutateAsync({
     match_id: props.matchId,
     pick_id: props.pickId,
+    market: props.market,
     line: props.line,
     side: props.side,
     odds: odds.value,
@@ -56,7 +60,7 @@ async function submit() {
       <div>
         <h2 class="font-bold">Registrar apuesta</h2>
         <p class="text-xs text-ink/60">{{ matchLabel }}</p>
-        <p class="font-semibold">{{ side === 'over' ? 'Más de' : 'Menos de' }} {{ line }} córners</p>
+        <p class="font-semibold">{{ selectionLabel(market, side, line) }}</p>
       </div>
 
       <div class="grid grid-cols-2 gap-2">

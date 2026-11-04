@@ -44,6 +44,7 @@ export interface BetMoney {
 
 export interface PickLine {
   id: number;
+  market: Market;
   line: number;
   projection: number;
   probability: number; // probabilidad de "más de" la línea
@@ -80,6 +81,7 @@ export interface Bet {
   stake: number;
   status: 'open' | 'closed' | 'confirmed' | 'void';
   actual_corners: number | null;
+  actual_goals: number | null;
   result: 'won' | 'lost' | 'void' | null;
   profit_loss: number | null;
   placed_at: string;
@@ -90,6 +92,13 @@ export interface Bet {
     league: { name: string } | null;
     home: { name: string } | null;
     away: { name: string } | null;
-    match_stats: { home_corners_total: number | null; away_corners_total: number | null } | { home_corners_total: number | null; away_corners_total: number | null }[] | null;
+    match_stats: MatchStatsTotals | MatchStatsTotals[] | null;
   } | null;
+}
+
+export interface MatchStatsTotals {
+  home_corners_total: number | null;
+  away_corners_total: number | null;
+  home_goals_total: number | null;
+  away_goals_total: number | null;
 }

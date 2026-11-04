@@ -2,8 +2,9 @@
 import { computed, reactive } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
 import EmptyState from '../components/EmptyState.vue';
-import { realCorners, useBets, useCloseBet, useConfirmBet, useVoidBet } from '../composables/useBets';
+import { actualOf, realTotal, useBets, useCloseBet, useConfirmBet, useVoidBet } from '../composables/useBets';
 import { formatMoney } from '../lib/format';
+import { MARKET_LABEL, selectionLabel } from '../lib/markets';
 import type { Bet } from '../types/db';
 
 const bets = useBets();
@@ -30,9 +31,9 @@ const summary = computed(() => {
 
 // Córners escritos a mano; si el partido ya terminó se sugiere el dato real de la base.
 const typed = reactive<Record<number, number | null>>({});
-const cornersFor = (b: Bet) => typed[b.id] ?? realCorners(b);
+const valueFor = (b: Bet) => typed[b.id] ?? realTotal(b);
 
-const sideLabel = (b: Bet) => `${b.side === 'over' ? 'Más de' : 'Menos de'} ${b.line}`;
+const sideLabel = (b: Bet) => selectionLabel(b.market, b.side, Number(b.line));
 const matchLabel = (b: Bet) => `${b.match?.home?.name ?? '?'} vs ${b.match?.away?.name ?? '?'}`;
 const fmtDate = (iso: string) =>
   new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
@@ -42,9 +43,9 @@ const RESULT_CLASS = { won: 'bg-value/10 text-value', lost: 'bg-novalue/10 text-
 const STATUS_LABEL = { open: 'Abierta', closed: 'Cerrada', confirmed: 'Confirmada', void: 'Anulada' } as const;
 
 function doClose(b: Bet) {
-  const c = cornersFor(b);
+  const c = valueFor(b);
   if (c === null || c === undefined || c < 0) return;
-  close.mutate({ bet: b, corners: c });
+  close.mutate({ bet: b, value: c });
 }
 </script>
 
@@ -81,7 +82,7 @@ function doClose(b: Bet) {
           <p class="text-xs text-ink/60">{{ b.match?.league?.name }} · {{ b.match ? fmtDate(b.match.kickoff_at) : '' }}</p>
           <p class="font-bold">{{ matchLabel(b) }}</p>
           <p>
-            {{ sideLabel(b) }} córners · cuota <strong>{{ Number(b.accepted_odds).toFixed(2) }}</strong> · monto
+            {{ sideLabel(b) }} · cuota <strong>{{ Number(b.accepted_odds).toFixed(2) }}</strong> · monto
             <strong>{{ formatMoney(Number(b.stake)) }}</strong>
           </p>
         </div>
@@ -89,11 +90,11 @@ function doClose(b: Bet) {
         <div class="flex items-end gap-2">
           <label class="block flex-1 space-y-1">
             <span class="text-xs font-semibold">
-              Córners reales
-              <span v-if="realCorners(b) !== null && typed[b.id] === undefined" class="font-normal text-value">(dato de la base)</span>
+              {{ MARKET_LABEL[b.market] }} reales
+              <span v-if="realTotal(b) !== null && typed[b.id] === undefined" class="font-normal text-value">(dato de la base)</span>
             </span>
             <input
-              :value="cornersFor(b) ?? ''"
+              :value="valueFor(b) ?? ''"
               type="number"
               min="0"
               step="1"
@@ -102,7 +103,7 @@ function doClose(b: Bet) {
               @input="typed[b.id] = ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)"
             />
           </label>
-          <button class="btn btn-primary" :disabled="cornersFor(b) === null || close.isPending.value" @click="doClose(b)">
+          <button class="btn btn-primary" :disabled="valueFor(b) === null || close.isPending.value" @click="doClose(b)">
             Cerrar
           </button>
           <button class="btn" :disabled="voidBet.isPending.value" @click="voidBet.mutate(b.id)">Anular</button>
@@ -118,7 +119,7 @@ function doClose(b: Bet) {
           <p class="truncate font-semibold">{{ matchLabel(b) }}</p>
           <p class="truncate text-xs text-ink/60">
             {{ sideLabel(b) }} @ {{ Number(b.accepted_odds).toFixed(2) }} · {{ formatMoney(Number(b.stake)) }}
-            <span v-if="b.actual_corners !== null"> · {{ b.actual_corners }} córners</span>
+            <span v-if="actualOf(b) !== null"> · {{ actualOf(b) }} {{ MARKET_LABEL[b.market].toLowerCase() }}</span>
             · {{ STATUS_LABEL[b.status] }}
           </p>
         </div>
