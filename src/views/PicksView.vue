@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ArrowPathIcon } from '@heroicons/vue/24/outline';
 import PageHeader from '../components/PageHeader.vue';
 import EmptyState from '../components/EmptyState.vue';
@@ -9,6 +9,7 @@ import AnalysisSummary from '../components/AnalysisSummary.vue';
 import ModelAccuracy from '../components/ModelAccuracy.vue';
 import { useOdds, useRefresh, useUpcomingMatches } from '../composables/usePicks';
 import { useProfile, useUpdateProfile } from '../composables/useProfile';
+import { useApiUsage } from '../composables/useApiUsage';
 import { MARKET_LABEL } from '../lib/markets';
 import { DEFAULT_MIN_PROBABILITY } from '../lib/probability';
 import type { Market } from '../types/db';
@@ -19,6 +20,7 @@ const matches = useUpcomingMatches();
 const profile = useProfile();
 const updateProfile = useUpdateProfile();
 const refresh = useRefresh();
+const { snapshot: apiUsage } = useApiUsage();
 
 const TABS: Market[] = ['goals_total', 'corners_total'];
 const SLUG: Record<Market, string> = { goals_total: 'goles', corners_total: 'corners' };
@@ -50,10 +52,14 @@ const sameDay = (iso: string, offset: number) => {
   return new Date(iso).toDateString() === d.toDateString();
 };
 
-const leagues = computed(() => [...new Set((matches.data.value ?? []).map((m) => m.league?.name).filter(Boolean))] as string[]);
+// Solo se analizan las ligas que el usuario tiene activas (si aún no eligió ninguna, se muestran todas).
+const activeIds = computed(() => profile.data.value?.active_league_ids ?? []);
+const activeMatches = computed(() => (matches.data.value ?? []).filter((m) => !activeIds.value.length || activeIds.value.includes(m.league_id)));
+
+const leagues = computed(() => [...new Set(activeMatches.value.map((m) => m.league?.name).filter(Boolean))] as string[]);
 
 const filtered = computed(() =>
-  (matches.data.value ?? []).filter((m) => {
+  activeMatches.value.filter((m) => {
     if (day.value === 'today' && !sameDay(m.kickoff_at, 0)) return false;
     if (day.value === 'tomorrow' && !sameDay(m.kickoff_at, 1)) return false;
     if (league.value && m.league?.name !== league.value) return false;
@@ -79,7 +85,7 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
   <PageHeader title="Picks" subtitle="Goles y córners de partido completo · hoy y mañana" />
 
   <div class="card mb-4 space-y-2 p-4">
-    <button class="btn btn-primary w-full" :disabled="refresh.isPending.value" @click="refresh.mutate()">
+    <button class="btn btn-primary w-full" :disabled="refresh.isPending.value" @click="refresh.mutate(false)">
       <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': refresh.isPending.value }" />
       {{ refresh.isPending.value ? 'Actualizando…' : 'Actualizar partidos, picks y cuotas' }}
     </button>
@@ -87,14 +93,31 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
     <p v-if="refresh.isError.value" role="alert" class="text-xs font-semibold text-novalue">
       {{ (refresh.error.value as Error).message }}
     </p>
-    <p v-else-if="refresh.data.value" class="text-xs text-value">
-      Listo: {{ refresh.data.value.summary.fixtures.saved }} partidos guardados,
-      {{ refresh.data.value.summary.picks.matches }} con proyección. Cuotas de Betano:
-      {{ refresh.data.value.summary.odds.withOdds }} partidos con cuotas, {{ refresh.data.value.summary.odds.without }} sin cuotas
-      disponibles. API-Football: {{ refresh.data.value.summary.fixtures.apiRequestsToday }}/90 solicitudes hoy.
-    </p>
-    <p v-if="refresh.data.value?.summary.fixtures.unmatched.length" class="text-xs font-semibold text-marginal">
-      Equipos sin unir: {{ refresh.data.value.summary.fixtures.unmatched.join(', ') }}
+    <template v-else-if="refresh.data.value">
+      <div v-if="refresh.data.value.skipped" class="space-y-2 text-xs">
+        <p class="font-semibold text-marginal">
+          Se actualizó hace poco. La próxima actualización automática está permitida desde las
+          {{ new Date(refresh.data.value.nextAllowedAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) }}
+          (frecuencia configurable en Ajustes → Consumo de API).
+        </p>
+        <button class="btn w-full" :disabled="refresh.isPending.value" @click="refresh.mutate(true)">Actualizar igualmente</button>
+      </div>
+      <template v-else>
+        <p v-if="refresh.data.value.apiStopped" role="alert" class="text-xs font-semibold text-novalue">
+          Se alcanzó el tope de solicitudes de hoy: se detuvieron las consultas a la API. Se usaron los datos ya guardados.
+        </p>
+        <p class="text-xs text-value">
+          Listo: {{ refresh.data.value.fixtures.saved }} partidos guardados, {{ refresh.data.value.picks.matches }} con proyección.
+          Cuotas de Betano: {{ refresh.data.value.odds.withOdds }} partidos con cuotas, {{ refresh.data.value.odds.without }} sin cuotas disponibles.
+        </p>
+        <p v-if="refresh.data.value.fixtures.unmatched.length" class="text-xs font-semibold text-marginal">
+          Equipos sin unir: {{ refresh.data.value.fixtures.unmatched.join(', ') }}
+        </p>
+      </template>
+    </template>
+    <p v-if="apiUsage" class="text-[11px] text-ink/60">
+      Consumo de la API hoy: {{ apiUsage.requests_used }}/{{ apiUsage.daily_limit ?? '?' }} según el proveedor.
+      <RouterLink :to="{ name: 'settings-api' }" class="font-semibold underline">Ver detalle</RouterLink>
     </p>
 
     <details class="text-xs text-ink/70">

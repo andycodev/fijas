@@ -9,7 +9,7 @@ const pick = (line: number, probability: number, market: 'goals_total' | 'corner
 });
 
 const match: UpcomingMatch = {
-  id: 1, home_team_id: 1, away_team_id: 2, kickoff_at: '2026-11-05T20:00:00Z',
+  id: 1, league_id: 1, home_team_id: 1, away_team_id: 2, kickoff_at: '2026-11-05T20:00:00Z',
   league: { name: 'Liga' }, home: { name: 'A' }, away: { name: 'B' },
   // Over 0.5: 95 %  ·  Over 1.5: 82 %  ·  Over 2.5: 56 %
   picks: [pick(0.5, 0.95), pick(1.5, 0.82), pick(2.5, 0.56)],

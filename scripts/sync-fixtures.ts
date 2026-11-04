@@ -7,14 +7,12 @@ import { matchTeam, type DbTeam } from './team-match.ts';
 
 // El plan gratis solo permite fechas desde ayer hasta mañana: más de 1 día adelante lo rechaza (y cuenta como solicitud).
 
-// Competiciones que interesan. Se amplía aquí (p. ej. copas nacionales) sin tocar el resto.
-const DOMESTIC = [39, 140, 135, 78];
+// Competiciones europeas que el sistema siempre conoce. Las demás ligas se agregan desde Ajustes → Ligas.
 const EUROPEAN = [
-  { api_football_id: 2, name: 'UEFA Champions League' },
-  { api_football_id: 3, name: 'UEFA Europa League' },
-  { api_football_id: 848, name: 'UEFA Conference League' },
+  { api_football_id: 2, name: 'UEFA Champions League', kind: 'cup' },
+  { api_football_id: 3, name: 'UEFA Europa League', kind: 'cup' },
+  { api_football_id: 848, name: 'UEFA Conference League', kind: 'cup' },
 ];
-const WANTED = new Set([...DOMESTIC, ...EUROPEAN.map((c) => c.api_football_id)]);
 const MIN_HISTORY = 8; // partidos con córners que se exigen para poder dar un pick
 
 const must = <T>(r: { data: T | null; error: { message: string } | null }): T => {
@@ -30,15 +28,27 @@ function statusOf(short: string): 'scheduled' | 'live' | 'finished' | 'postponed
   return 'cancelled';
 }
 
-export async function syncFixtures(db: Db, DAYS_AHEAD = 1, log: (s: string) => void = console.log) {
+// opts.activeLeagueIds: ids de leagues que el usuario tiene activas (sin indicar, se usa leagues.active).
+export async function syncFixtures(
+  db: Db,
+  DAYS_AHEAD = 1,
+  log: (s: string) => void = console.log,
+  opts: { activeLeagueIds?: number[] } = {},
+) {
 // 1) Competiciones europeas en leagues (idempotente)
 must(
   await db
     .from('leagues')
-    .upsert(EUROPEAN.map((c) => ({ ...c, country: 'Europe', active: true })), { onConflict: 'api_football_id' }),
+    .upsert(EUROPEAN.map((c) => ({ ...c, country: 'Europe' })), { onConflict: 'api_football_id' }),
 );
-const leagues = must(await db.from('leagues').select('id, name, api_football_id')) as { id: number; name: string; api_football_id: number }[];
+interface LeagueRow { id: number; name: string; api_football_id: number; football_data_code: string | null; active: boolean }
+const leagues = must(await db.from('leagues').select('id, name, api_football_id, football_data_code, active')) as LeagueRow[];
 const leagueByApi = new Map(leagues.map((l) => [l.api_football_id, l]));
+// Solo se analizan las ligas activas.
+const wantedApi = new Set(
+  leagues.filter((l) => (opts.activeLeagueIds ? opts.activeLeagueIds.includes(l.id) : l.active)).map((l) => l.api_football_id),
+);
+log(`Ligas activas: ${leagues.filter((l) => wantedApi.has(l.api_football_id)).map((l) => l.name).join(', ') || 'ninguna'}`);
 
 // 2) Equipos conocidos
 const teams = must(
@@ -47,11 +57,12 @@ const teams = must(
 const teamByApi = new Map(teams.filter((t) => t.api_football_id).map((t) => [t.api_football_id!, t]));
 const unmatched = new Set<string>();
 
-async function resolveTeam(api: { id: number; name: string }, league: { id: number; api_football_id: number }) {
+async function resolveTeam(api: { id: number; name: string }, league: LeagueRow) {
   const known = teamByApi.get(api.id);
   if (known) return known;
 
-  const isDomestic = DOMESTIC.includes(league.api_football_id);
+  // Una liga con fuente de histórico (Football-Data) ya tiene sus equipos cargados: ahí no se crean duplicados.
+  const isDomestic = league.football_data_code !== null;
   // Liga nacional: se une solo con equipos de esa liga aún sin id (ascendidos). Europea: solo coincidencia exacta.
   const pool = teams.filter((t) => !t.api_football_id && (isDomestic ? t.league_id === league.id : true));
   const found = matchTeam(api.name, pool, { exactOnly: !isDomestic });
@@ -86,7 +97,7 @@ const dates = Array.from({ length: DAYS_AHEAD + 1 }, (_, i) => new Date(Date.now
 for (const date of dates) {
   const res = await apiGet('/fixtures', { date }, { maxAgeHours: 6 });
   if (res.body.errors && Object.keys(res.body.errors).length) throw new Error(`API: ${JSON.stringify(res.body.errors)}`);
-  const wanted = (res.body.response as any[]).filter((f) => WANTED.has(f.league.id));
+  const wanted = (res.body.response as any[]).filter((f) => wantedApi.has(f.league.id));
   log(`${date}: ${res.body.results} partidos en el mundo, ${wanted.length} de las competiciones elegidas`);
 
   for (const f of wanted) {

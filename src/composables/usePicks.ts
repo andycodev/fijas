@@ -2,6 +2,7 @@ import { computed } from 'vue';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { supabase } from '../services/supabase';
 import { useAuthStore } from '../stores/auth';
+import { callAction } from './useServerAction';
 import type { Market, OddsRow, UpcomingMatch } from '../types/db';
 
 const HOURS_AHEAD = 72;
@@ -15,7 +16,7 @@ export function useUpcomingMatches() {
       const { data, error } = await supabase
         .from('matches')
         .select(
-          'id, home_team_id, away_team_id, kickoff_at, league:leagues(name), home:teams!matches_home_team_id_fkey(name), away:teams!matches_away_team_id_fkey(name), picks(id, line, projection, probability, min_odds, model_version, market, home_games_used, away_games_used, latest_game_at)',
+          'id, league_id, home_team_id, away_team_id, kickoff_at, league:leagues(name), home:teams!matches_home_team_id_fkey(name), away:teams!matches_away_team_id_fkey(name), picks(id, line, projection, probability, min_odds, model_version, market, home_games_used, away_games_used, latest_game_at)',
         )
         .eq('status', 'scheduled')
         .gte('kickoff_at', from)
@@ -81,34 +82,30 @@ export function useSaveOdds() {
   });
 }
 
-export interface RefreshResult {
-  ok: boolean;
-  log: string[];
-  summary: {
-    fixtures: { saved: number; withHistory: number; unmatched: string[]; apiRequestsToday: number };
-    picks: { matches: number; skipped: number };
-    odds: { matches: number; withOdds: number; without: number; rows: number };
-  };
-}
+export type RefreshSummary =
+  | { skipped: true; nextAllowedAt: string }
+  | {
+      skipped: false;
+      apiStopped: boolean;
+      fixtures: { saved: number; withHistory: number; unmatched: string[]; apiRequestsToday: number };
+      picks: { matches: number; skipped: number };
+      odds: { matches: number; withOdds: number; without: number; rows: number };
+    };
 
-// Llama al endpoint local del servidor de desarrollo (no existe fuera de `pnpm dev`).
+// Pide al servidor local actualizar resultados, partidos, picks y cuotas (respeta la frecuencia y el tope de API).
 export function useRefresh() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (): Promise<RefreshResult> => {
-      const { data } = await supabase.auth.getSession();
-      const res = await fetch('/api/refresh', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${data.session?.access_token ?? ''}` },
-      });
-      const contentType = res.headers.get('content-type') ?? '';
-      if (!contentType.includes('application/json')) {
-        throw new Error('El botón solo funciona con el servidor local (pnpm dev).');
-      }
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'No se pudo actualizar.');
-      return body as RefreshResult;
+    mutationFn: async (force: boolean = false): Promise<RefreshSummary> => {
+      const { summary } = await callAction<RefreshSummary>('refresh', { force });
+      return summary;
     },
-    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: ['upcoming-matches'] }), qc.invalidateQueries({ queryKey: ['odds'] })]),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ['upcoming-matches'] }),
+        qc.invalidateQueries({ queryKey: ['odds'] }),
+        qc.invalidateQueries({ queryKey: ['api-usage'] }),
+        qc.invalidateQueries({ queryKey: ['profile'] }),
+      ]),
   });
 }

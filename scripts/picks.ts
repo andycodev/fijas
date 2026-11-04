@@ -52,15 +52,21 @@ function historicalDispersion(games: Game[], params: ModelParams): number {
   return fitDispersion(pairs);
 }
 
-export async function generatePicks(db: Db, log: (s: string) => void = console.log) {
+export async function generatePicks(
+  db: Db,
+  log: (s: string) => void = console.log,
+  opts: { activeLeagueIds?: number[] } = {},
+) {
   const now = new Date();
   const until = new Date(now.getTime() + HOURS_AHEAD * 3600_000);
-  const { data: upcoming, error } = await db
+  let upcomingQuery = db
     .from('matches')
     .select('id, home_team_id, away_team_id, kickoff_at')
     .eq('status', 'scheduled')
     .gte('kickoff_at', new Date(now.getTime() - 3 * 3600_000).toISOString())
     .lte('kickoff_at', until.toISOString());
+  if (opts.activeLeagueIds) upcomingQuery = upcomingQuery.in('league_id', opts.activeLeagueIds); // solo ligas activas
+  const { data: upcoming, error } = await upcomingQuery;
   if (error) throw new Error(error.message);
 
   const withPicks = new Set<number>();

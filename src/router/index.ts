@@ -18,7 +18,15 @@ const routes: RouteRecordRaw[] = [
       { path: 'picks', name: 'picks', component: () => import('../views/PicksView.vue') },
       { path: 'apuestas', name: 'bets', component: () => import('../views/BetsView.vue') },
       { path: 'caja', name: 'cash', component: () => import('../views/CashView.vue') },
-      { path: 'ajustes', name: 'settings', component: () => import('../views/SettingsView.vue') },
+      {
+        path: 'ajustes',
+        component: () => import('../views/SettingsLayout.vue'),
+        children: [
+          { path: '', name: 'settings', component: () => import('../views/SettingsView.vue') },
+          { path: 'ligas', name: 'settings-leagues', component: () => import('../views/LeaguesView.vue') },
+          { path: 'api', name: 'settings-api', component: () => import('../views/ApiUsageView.vue') },
+        ],
+      },
     ],
   },
   { path: '/:pathMatch(.*)*', redirect: '/' },

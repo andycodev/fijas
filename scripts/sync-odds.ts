@@ -12,16 +12,22 @@ const BETS = [
 ] as const;
 const MAX_FIXTURES = 20; // tope de solicitudes de cuotas por ejecución
 
-export async function syncOdds(db: Db, log: (s: string) => void = console.log) {
+export async function syncOdds(
+  db: Db,
+  log: (s: string) => void = console.log,
+  opts: { activeLeagueIds?: number[] } = {},
+) {
   const now = new Date();
-  const { data, error } = await db
+  let query = db
     .from('matches')
     .select('id, api_football_id, kickoff_at, picks!inner(id)')
     .eq('status', 'scheduled')
     .not('api_football_id', 'is', null)
     .gte('kickoff_at', new Date(now.getTime() - 3 * 3600_000).toISOString())
     .lte('kickoff_at', new Date(now.getTime() + 72 * 3600_000).toISOString())
-    .order('kickoff_at');
+    .order('kickoff_at'); // los más cercanos primero: si el tope corta, se pierden los más lejanos
+  if (opts.activeLeagueIds) query = query.in('league_id', opts.activeLeagueIds);
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
 
   const matches = [...new Map((data as any[]).map((m) => [m.id, m])).values()].slice(0, MAX_FIXTURES);

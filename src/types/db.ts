@@ -15,6 +15,11 @@ export interface Profile {
   monthly_loss_limit_pct: number;
   losing_streak_alert: number;
   min_probability: number;
+  favorite_league_ids: number[];
+  api_daily_cap: number;
+  refresh_interval_minutes: number;
+  api_reset_hour_utc: number;
+  last_refresh_at: string | null;
 }
 
 export interface League {
@@ -22,6 +27,9 @@ export interface League {
   name: string;
   country: string;
   active: boolean;
+  api_football_id: number | null;
+  football_data_code: string | null;
+  kind: 'league' | 'cup' | null;
 }
 
 export interface CashMovement {
@@ -61,6 +69,7 @@ export interface PickLine {
 
 export interface UpcomingMatch {
   id: number;
+  league_id: number;
   home_team_id: number;
   away_team_id: number;
   kickoff_at: string;

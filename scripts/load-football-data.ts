@@ -29,8 +29,16 @@ function kickoff(date: string, time: string): string | null {
 const toInt = (v: string): number | null => (/^\d+$/.test(v) ? Number(v) : null);
 const toDec = (v: string): number | null => (/^\d+(\.\d+)?$/.test(v) ? Number(v) : null);
 
-export async function loadFootballData(db: Db, seasons: number[], log: (s: string) => void = console.log) {
-const { data: leagues, error: lerr } = await db.from('leagues').select('id, name, football_data_code').not('football_data_code', 'is', null);
+// onlyLeagueIds: si se indica, solo se cargan esas ligas (p. ej. una recién agregada).
+export async function loadFootballData(
+  db: Db,
+  seasons: number[],
+  log: (s: string) => void = console.log,
+  onlyLeagueIds?: number[],
+) {
+let leagueQuery = db.from('leagues').select('id, name, football_data_code').not('football_data_code', 'is', null);
+if (onlyLeagueIds) leagueQuery = leagueQuery.in('id', onlyLeagueIds);
+const { data: leagues, error: lerr } = await leagueQuery;
 if (lerr) throw lerr;
 if (!leagues?.length) throw new Error('No hay ligas en la tabla leagues. ¿Ejecutaste las migraciones?');
 

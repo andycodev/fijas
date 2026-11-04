@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue';
-import PageHeader from '../components/PageHeader.vue';
 import { useAuthStore } from '../stores/auth';
 import { useLeagues, useProfile, useUpdateProfile } from '../composables/useProfile';
 import type { Market } from '../types/db';
@@ -71,7 +70,6 @@ async function save() {
 </script>
 
 <template>
-  <PageHeader title="Ajustes" subtitle="Tu perfil y preferencias" />
 
   <p v-if="profile.isLoading.value" class="text-ink/60">Cargando…</p>
   <p v-else-if="profile.isError.value" role="alert" class="text-novalue">

@@ -21,7 +21,7 @@ export function useLeagues() {
     queryKey: ['leagues'],
     staleTime: Infinity,
     queryFn: async (): Promise<League[]> => {
-      const { data, error } = await supabase.from('leagues').select('id, name, country, active').order('name');
+      const { data, error } = await supabase.from('leagues').select('id, name, country, active, api_football_id, football_data_code, kind').order('name');
       if (error) throw error;
       return data as League[];
     },
