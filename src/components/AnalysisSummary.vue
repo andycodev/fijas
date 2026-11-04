@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Betano from './Betano.vue';
 import { computed, ref } from 'vue';
 import { analyze, confidenceFor, type CalibrationBucket, type Confidence, type Selection } from '../lib/opportunities';
 import { BAND_CLASS, BAND_LABEL } from '../lib/probability';
@@ -86,7 +87,7 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
         <li class="rounded-md border border-line p-2">
           <p class="text-ink/60">Cumplen {{ minPct }}% o más</p>
           <p class="text-lg font-extrabold">{{ analysis.meetMinimum.length }}</p>
-          <p class="text-[11px] text-ink/50">{{ analysis.highProbabilityNoOdds.length }} sin cuota de Betano</p>
+          <p class="text-[11px] text-ink/50">{{ analysis.highProbabilityNoOdds.length }} sin cuota de <Betano /></p>
         </li>
         <li class="rounded-md border border-line p-2">
           <p class="text-ink/60">Con valor esperado positivo</p>
@@ -103,10 +104,10 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
     <div v-if="!analysis.recommended.length" class="card p-4 text-ink/80">
       <p class="font-semibold">No se encontraron oportunidades que cumplan los criterios.</p>
       <p class="mt-1 text-xs text-ink/70">
-        Criterios: probabilidad de {{ minPct }}% o más, cuota de Betano disponible y valor esperado de
+        Criterios: probabilidad de {{ minPct }}% o más, cuota de <Betano /> disponible y valor esperado de
         {{ (valueThreshold * 100).toFixed(1) }}% o más.
         <template v-if="analysis.highProbabilityNoValue.length">
-          Hay {{ analysis.highProbabilityNoValue.length }} selecciones probables, pero Betano las paga por debajo de su cuota justa.
+          Hay {{ analysis.highProbabilityNoValue.length }} selecciones probables, pero <Betano /> las paga por debajo de su cuota justa.
         </template>
         No se fuerzan recomendaciones.
       </p>
@@ -138,7 +139,7 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
             <dd class="font-bold">{{ s.fairOdds.toFixed(2) }}</dd>
           </div>
           <div>
-            <dt class="text-ink/60">Cuota de Betano</dt>
+            <dt class="text-ink/60">Cuota de <Betano /></dt>
             <dd class="font-bold">{{ s.betano!.odds.toFixed(2) }}</dd>
             <dd class="text-[11px] text-ink/50">
               {{ s.betano!.origin === 'manual' ? 'escrita por ti (confirmada)' : `vía proveedor, ${when(s.betano!.capturedAt)}, sin verificar` }}
@@ -147,7 +148,7 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
           <div>
             <dt class="text-ink/60">Diferencia con la justa</dt>
             <dd class="font-bold text-value">+{{ (s.betano!.odds - s.fairOdds).toFixed(2) }}</dd>
-            <dd class="text-[11px] text-ink/50">Betano paga más de lo justo</dd>
+            <dd class="text-[11px] text-ink/50"><Betano /> paga más de lo justo</dd>
           </div>
         </dl>
 
@@ -158,7 +159,7 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
         </p>
 
         <p v-if="s.ev! > 0.15" class="text-[11px] font-semibold text-marginal">
-          Un valor tan alto suele indicar una cuota mal leída o desfasada: compárala con tu Betano antes de apostar.
+          Un valor tan alto suele indicar una cuota mal leída o desfasada: compárala con tu <Betano /> antes de apostar.
         </p>
 
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -180,12 +181,12 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
         Probables pero sin valor ({{ analysis.highProbabilityNoValue.length }})
       </summary>
       <p class="mb-2 text-xs text-ink/60">
-        Cumplen {{ minPct }}% o más, pero Betano paga menos de lo que necesitarían. Acertar a menudo no basta si la cuota no compensa.
+        Cumplen {{ minPct }}% o más, pero <Betano /> paga menos de lo que necesitarían. Acertar a menudo no basta si la cuota no compensa.
       </p>
       <ul class="space-y-2 text-xs">
         <li v-for="s in analysis.highProbabilityNoValue" :key="s.key">
           <strong>{{ label(s) }}</strong> · {{ game(s) }}<br />
-          Modelo {{ pct(s.probability) }} · Betano paga {{ s.betano!.odds.toFixed(2) }}, necesitaría
+          Modelo {{ pct(s.probability) }} · <Betano /> paga {{ s.betano!.odds.toFixed(2) }}, necesitaría
           {{ needed(s).toFixed(2) }} · valor <span class="font-bold text-novalue">{{ evText(s.ev!) }}</span>
         </li>
       </ul>
@@ -193,9 +194,9 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
 
     <details v-if="analysis.highProbabilityNoOdds.length" class="card p-4">
       <summary class="min-h-touch cursor-pointer font-bold">
-        Probables sin cuota de Betano ({{ analysis.highProbabilityNoOdds.length }})
+        Probables sin cuota de <Betano /> ({{ analysis.highProbabilityNoOdds.length }})
       </summary>
-      <p class="mb-2 text-xs text-ink/60">No se puede calcular su valor. Si ves la cuota en tu Betano, escríbela en la tarjeta del partido.</p>
+      <p class="mb-2 text-xs text-ink/60">No se puede calcular su valor. Si ves la cuota en tu <Betano />, escríbela en la tarjeta del partido.</p>
       <ul class="space-y-1 text-xs">
         <li v-for="s in analysis.highProbabilityNoOdds" :key="s.key">
           <strong>{{ label(s) }}</strong> · {{ game(s) }} · modelo {{ pct(s.probability) }} (cuota justa {{ s.fairOdds.toFixed(2) }})

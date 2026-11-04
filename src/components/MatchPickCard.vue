@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Betano from './Betano.vue';
 import { computed, reactive, ref } from 'vue';
 import { ChevronDownIcon } from '@heroicons/vue/24/outline';
 import { MIN_ODDS_TARGET, signalFor, type Signal } from '../lib/value';
@@ -107,7 +108,7 @@ function persist(line: number) {
             Mejor: {{ best.side === 'over' ? 'Más de' : 'Menos de' }} {{ best.line }} · {{ evText(best.ev!) }}
           </span>
           <span v-else-if="eligible.some((s) => s.betano)" class="text-ink/60">Sin selecciones con valor ahora</span>
-          <span v-else class="text-ink/60">Sin cuotas de Betano</span>
+          <span v-else class="text-ink/60">Sin cuotas de <Betano /></span>
         </p>
       </div>
       <div class="text-right">
@@ -132,16 +133,17 @@ function persist(line: number) {
           </div>
 
           <p v-if="s.betano" class="text-xs">
-            Betano paga <strong>{{ odds2(s.betano.odds) }}</strong>
+            <Betano /> paga <strong>{{ odds2(s.betano.odds) }}</strong>
             <template v-if="s.ev !== null"> · valor <strong :class="s.ev >= 0 ? 'text-value' : 'text-novalue'">{{ evText(s.ev) }}</strong></template>
             · {{ s.betano.odds >= s.fairOdds ? '+' : '−' }}{{ Math.abs(s.betano.odds - s.fairOdds).toFixed(2) }} frente a la justa
             <template v-if="signalOf(s) !== 'green'"> · para valer la pena debería pagar al menos <strong>{{ odds2(needed(s)) }}</strong></template>
             <template v-if="s.betano.odds < MIN_ODDS_TARGET"> · bajo tu mínimo de {{ odds2(MIN_ODDS_TARGET) }}</template>
             <span class="block text-[11px] text-ink/50">
-              {{ s.betano.origin === 'manual' ? 'Cuota escrita por ti (confirmada)' : `Betano vía proveedor · ${fmtTime(s.betano.capturedAt)} · sin verificar` }}
+              <template v-if="s.betano.origin === 'manual'">Cuota escrita por ti (confirmada)</template>
+              <template v-else><Betano /> vía proveedor · {{ fmtTime(s.betano.capturedAt) }} · sin verificar</template>
             </span>
           </p>
-          <p v-else class="text-xs text-ink/50">No hay cuota de Betano para esta selección.</p>
+          <p v-else class="text-xs text-ink/50">No hay cuota de <Betano /> para esta selección.</p>
 
           <p class="text-[11px] text-ink/60">
             Datos: {{ s.gamesHome ?? '?' }} y {{ s.gamesAway ?? '?' }} partidos<template v-if="daysAgo(s.latestGameAt) !== null">, el más antiguo de hace {{ daysAgo(s.latestGameAt) }} días</template>

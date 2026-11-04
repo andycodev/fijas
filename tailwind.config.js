@@ -10,6 +10,7 @@ export default {
         marginal: '#B7791F', // marginal
         novalue: '#A32D22', // sin valor
         line: '#DDE2DA', // bordes
+        betano: '#D9480F', // naranja de la marca Betano (ligeramente oscurecido para leerse bien sobre fondo claro)
       },
       fontFamily: {
         sans: ['Manrope', 'system-ui', 'sans-serif'],

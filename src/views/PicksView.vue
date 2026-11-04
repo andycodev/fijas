@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Betano from '../components/Betano.vue';
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ArrowPathIcon } from '@heroicons/vue/24/outline';
@@ -108,7 +109,7 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
         </p>
         <p class="text-xs text-value">
           Listo: {{ refresh.data.value.fixtures.saved }} partidos guardados, {{ refresh.data.value.picks.matches }} con proyección.
-          Cuotas de Betano: {{ refresh.data.value.odds.withOdds }} partidos con cuotas, {{ refresh.data.value.odds.without }} sin cuotas disponibles.
+          Cuotas de <Betano />: {{ refresh.data.value.odds.withOdds }} partidos con cuotas, {{ refresh.data.value.odds.without }} sin cuotas disponibles.
         </p>
         <p v-if="refresh.data.value.fixtures.unmatched.length" class="text-xs font-semibold text-marginal">
           Equipos sin unir: {{ refresh.data.value.fixtures.unmatched.join(', ') }}
@@ -124,10 +125,10 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
       <summary class="min-h-touch cursor-pointer py-2 font-bold text-ink">Cómo leer esta pantalla</summary>
       <ul class="list-disc space-y-1 pl-4">
         <li><strong>Probabilidad mínima:</strong> solo se recomienda lo que el modelo cree que acierta con ese porcentaje o más (por defecto 75%).</li>
-        <li><strong>Cuota justa:</strong> 1 / probabilidad. Es lo mínimo que debería pagar Betano para que no pierdas con el tiempo. No es una cuota de Betano.</li>
-        <li><strong>Cuota de Betano:</strong> «vía proveedor» no está verificada; si la escribes tú, queda confirmada.</li>
+        <li><strong>Cuota justa:</strong> 1 / probabilidad. Es lo mínimo que debería pagar <Betano /> para que no pierdas con el tiempo. No es una cuota de <Betano />.</li>
+        <li><strong>Cuota de <Betano />:</strong> «vía proveedor» no está verificada; si la escribes tú, queda confirmada.</li>
         <li><strong>Valor esperado:</strong> lo que ganas en promedio por cada S/1 apostado si el modelo acierta. Muy probable no significa buena apuesta: solo conviene cuando el valor es positivo.</li>
-        <li>Un valor muy alto suele ser una cuota mal leída. Compárala con tu Betano antes de apostar.</li>
+        <li>Un valor muy alto suele ser una cuota mal leída. Compárala con tu <Betano /> antes de apostar.</li>
       </ul>
     </details>
   </div>

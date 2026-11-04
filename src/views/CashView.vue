@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Betano from '../components/Betano.vue';
 import { computed, reactive, ref } from 'vue';
 import { TrashIcon } from '@heroicons/vue/24/outline';
 import PageHeader from '../components/PageHeader.vue';
@@ -197,10 +198,10 @@ function diffClass(diff: number) {
   </form>
 
   <form class="card mb-4 space-y-3 p-4" @submit.prevent="submitReconciliation">
-    <h2 class="font-bold">Conciliación con Betano</h2>
+    <h2 class="font-bold">Conciliación con <Betano /></h2>
     <div class="flex gap-2">
       <label class="block flex-1 space-y-1">
-        <span class="text-xs font-semibold">Saldo que muestra Betano</span>
+        <span class="text-xs font-semibold">Saldo que muestra <Betano /></span>
         <input v-model.number="betanoBalance" type="number" step="0.01" required class="field" />
       </label>
       <button type="submit" class="btn self-end" :disabled="cash.balance.value === null || cash.addReconciliation.isPending.value">
@@ -210,7 +211,7 @@ function diffClass(diff: number) {
     <p v-if="lastReconciliation" class="text-xs">
       Última ({{ formatDate(lastReconciliation.checked_on) }}): diferencia
       <strong :class="diffClass(lastReconciliation.difference)">{{ formatMoney(lastReconciliation.difference) }}</strong>
-      (Betano {{ formatMoney(lastReconciliation.betano_balance) }} vs calculado {{ formatMoney(lastReconciliation.calculated_balance) }})
+      (<Betano /> {{ formatMoney(lastReconciliation.betano_balance) }} vs calculado {{ formatMoney(lastReconciliation.calculated_balance) }})
     </p>
   </form>
 

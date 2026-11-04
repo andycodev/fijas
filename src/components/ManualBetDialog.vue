@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Betano from './Betano.vue';
 import { computed, reactive, ref } from 'vue';
 import { modelProbabilityFor, useCreateBet, useSelectableMatches } from '../composables/useBets';
 import { useCash } from '../composables/useCash';
@@ -120,7 +121,7 @@ async function submit() {
 
       <div class="grid grid-cols-2 gap-2">
         <label class="block space-y-1">
-          <span class="text-xs font-semibold">Cuota de Betano</span>
+          <span class="text-xs font-semibold">Cuota de <Betano /></span>
           <input v-model.number="form.odds" type="number" step="0.01" min="1.01" required inputmode="decimal" class="field" />
         </label>
         <label class="block space-y-1">

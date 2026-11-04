@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Betano from './Betano.vue';
 import { MARKET_LABEL } from '../lib/markets';
 import backtest from '../data/backtest.json';
 import type { Market } from '../types/db';
@@ -52,7 +53,7 @@ const gap = (b: Bucket) => (b.predicted !== null && b.actual !== null ? b.actual
 
     <p class="text-xs text-ink/60">
       Cada caso es una línea de un partido (varias líneas del mismo partido están relacionadas, no son independientes). Esto
-      mide si las probabilidades son creíbles; <strong>no mide si las cuotas de Betano pagan lo suficiente</strong>: eso se
+      mide si las probabilidades son creíbles; <strong>no mide si las cuotas de <Betano /> pagan lo suficiente</strong>: eso se
       comprueba con tus apuestas registradas.
     </p>
   </details>

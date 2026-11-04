@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Betano from '../components/Betano.vue';
 import { computed, reactive, ref } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import PageHeader from '../components/PageHeader.vue';
@@ -48,7 +49,9 @@ function doClose(b: Bet) {
 
 <template>
   <div class="flex items-start justify-between gap-3">
-    <PageHeader title="Apuestas" subtitle="Registro y resultados en Betano" />
+    <PageHeader title="Apuestas">
+      <template #subtitle>Registro y resultados en <Betano /></template>
+    </PageHeader>
     <button class="btn btn-primary shrink-0" @click="adding = true"><PlusIcon class="h-5 w-5" />Nueva</button>
   </div>
 
