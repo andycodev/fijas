@@ -127,8 +127,27 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
         <li><strong>Probabilidad mínima:</strong> solo se recomienda lo que el modelo cree que acierta con ese porcentaje o más (por defecto 75%).</li>
         <li><strong>Cuota justa:</strong> 1 / probabilidad. Es lo mínimo que debería pagar <Betano /> para que no pierdas con el tiempo. No es una cuota de <Betano />.</li>
         <li><strong>Cuota de <Betano />:</strong> «vía proveedor» no está verificada; si la escribes tú, queda confirmada.</li>
-        <li><strong>Valor esperado:</strong> lo que ganas en promedio por cada S/1 apostado si el modelo acierta. Muy probable no significa buena apuesta: solo conviene cuando el valor es positivo.</li>
-        <li>Un valor muy alto suele ser una cuota mal leída. Compárala con tu <Betano /> antes de apostar.</li>
+        <li>
+          <strong>Valor esperado (EV):</strong> lo que ganas o pierdes <em>en promedio</em> por cada S/1 que apuestas, si repitieras la
+          misma apuesta muchísimas veces y la probabilidad del modelo fuera correcta. Se calcula así: probabilidad × cuota − 1.
+          <span class="mt-1 block rounded-md bg-canvas p-2">
+            <strong>Ejemplo:</strong> el modelo da 65% y <Betano /> paga 1.70 → 0.65 × 1.70 − 1 = <strong>+10.5%</strong>. Con S/10, la
+            ganancia esperada es S/1.05 por apuesta. En una sola apuesta ganas S/7 (si aciertas) o pierdes S/10 (si fallas); el
+            promedio solo aparece con muchas repeticiones.
+          </span>
+        </li>
+        <li>
+          <strong>Positivo, cero o negativo:</strong> positivo = la cuota paga más de lo que el riesgo merece; cero = justo; negativo =
+          a la larga pierdes. Muy probable no significa buena apuesta: una selección del 90% pagando 1.05 tiene valor negativo.
+        </li>
+        <li>
+          <strong>Valor muy alto = desconfía.</strong> Por encima de +15% la app te avisa: casi siempre es una cuota desfasada o mal
+          leída, o algo que el modelo no sabe (bajas, rotaciones). Compárala con tu <Betano /> antes de apostar.
+        </li>
+        <li>
+          <strong>Calcular monto:</strong> escribe cuántos soles pondrías y verás cuánto cobras si aciertas, cuánto pierdes si fallas, la
+          ganancia esperada promedio y un monto recomendado según tu capital inicial y tus límites.
+        </li>
       </ul>
     </details>
   </div>

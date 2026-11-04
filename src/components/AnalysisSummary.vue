@@ -7,6 +7,7 @@ import { MARKET_LABEL, selectionLabel } from '../lib/markets';
 import backtest from '../data/backtest.json';
 import BetDialog from './BetDialog.vue';
 import WhyPanel from './WhyPanel.vue';
+import StakeCalculator from './StakeCalculator.vue';
 import type { OddsRow, UpcomingMatch } from '../types/db';
 
 const props = defineProps<{
@@ -29,6 +30,7 @@ const minPct = computed({
 
 const betting = ref<Selection | null>(null);
 const whyOpen = ref<Record<string, boolean>>({});
+const stakes = ref<Record<string, number | null>>({}); // monto elegido en la calculadora de cada oportunidad
 
 const buckets = (market: string) =>
   (backtest.markets as Record<string, { buckets: CalibrationBucket[] }>)[market]?.buckets;
@@ -156,9 +158,7 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
           <template v-if="days(s.latestGameAt) !== null"> · el más antiguo de los dos equipos fue hace {{ days(s.latestGameAt) }} días</template>
         </p>
 
-        <p v-if="s.ev! > 0.15" class="text-[11px] font-semibold text-marginal">
-          Un valor tan alto suele indicar una cuota mal leída o desfasada: compárala con tu <Betano /> antes de apostar.
-        </p>
+        <StakeCalculator v-model="stakes[s.key]" :selection="s" :threshold="valueThreshold" />
 
         <div class="flex flex-wrap items-center justify-between gap-2">
           <span class="text-xs font-bold" :class="CONF_CLASS[confidenceOf(s).level]">{{ CONF_LABEL[confidenceOf(s).level] }}</span>
@@ -212,6 +212,7 @@ const game = (s: Selection) => `${s.match.home?.name} vs ${s.match.away?.name}`;
       :side="betting.side"
       :odds="betting.betano.odds"
       :model-probability="betting.probability"
+      :initial-stake="stakes[betting.key] ?? null"
       @close="betting = null"
     />
   </section>

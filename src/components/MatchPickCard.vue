@@ -10,6 +10,7 @@ import { useSaveOdds } from '../composables/usePicks';
 import backtest from '../data/backtest.json';
 import BetDialog from './BetDialog.vue';
 import WhyPanel from './WhyPanel.vue';
+import StakeCalculator from './StakeCalculator.vue';
 import type { Market, OddsRow, UpcomingMatch } from '../types/db';
 
 const props = defineProps<{
@@ -26,6 +27,9 @@ const showAll = ref(false);
 const save = useSaveOdds();
 const betting = ref<Selection | null>(null);
 const whyOpen = ref<Record<string, boolean>>({});
+// Calculadora de monto: abierta por defecto en las selecciones que valen la pena; las demás la abren con el botón.
+const calcOpen = ref<Record<string, boolean>>({});
+const stakes = ref<Record<string, number | null>>({});
 
 const picks = computed(() => props.match.picks.filter((p) => p.market === props.market));
 const projection = computed(() => picks.value[0]?.projection ?? null);
@@ -134,7 +138,7 @@ function persist(line: number) {
 
           <p v-if="s.betano" class="text-xs">
             <Betano /> paga <strong>{{ odds2(s.betano.odds) }}</strong>
-            <template v-if="s.ev !== null"> · valor <strong :class="s.ev >= 0 ? 'text-value' : 'text-novalue'">{{ evText(s.ev) }}</strong></template>
+            <template v-if="s.ev !== null"> · valor esperado <strong :class="s.ev >= 0 ? 'text-value' : 'text-novalue'">{{ evText(s.ev) }}</strong></template>
             · {{ s.betano.odds >= s.fairOdds ? '+' : '−' }}{{ Math.abs(s.betano.odds - s.fairOdds).toFixed(2) }} frente a la justa
             <template v-if="signalOf(s) !== 'green'"> · para valer la pena debería pagar al menos <strong>{{ odds2(needed(s)) }}</strong></template>
             <span class="block text-[11px] text-ink/50">
@@ -164,11 +168,26 @@ function persist(line: number) {
             <button v-if="s.betano" type="button" class="btn" :class="signalOf(s) === 'green' ? 'btn-primary' : ''" @click="betting = s">
               Apostar
             </button>
+            <button
+              v-if="s.betano"
+              type="button"
+              class="btn"
+              :aria-expanded="calcOpen[s.key] ?? signalOf(s) === 'green'"
+              @click="calcOpen[s.key] = !(calcOpen[s.key] ?? signalOf(s) === 'green')"
+            >
+              Calcular monto
+            </button>
             <button type="button" class="btn" :aria-expanded="!!whyOpen[s.key]" @click="whyOpen[s.key] = !whyOpen[s.key]">
               ¿Por qué esta probabilidad?
             </button>
           </div>
 
+          <StakeCalculator
+            v-if="s.betano && (calcOpen[s.key] ?? signalOf(s) === 'green')"
+            v-model="stakes[s.key]"
+            :selection="s"
+            :threshold="threshold"
+          />
           <WhyPanel v-if="whyOpen[s.key]" :selection="s" />
         </li>
       </ul>
@@ -203,6 +222,7 @@ function persist(line: number) {
       :side="betting.side"
       :odds="betting.betano.odds"
       :model-probability="betting.probability"
+      :initial-stake="stakes[betting.key] ?? null"
       @close="betting = null"
     />
   </article>
