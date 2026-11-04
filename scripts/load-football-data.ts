@@ -1,16 +1,10 @@
 // Carga el histórico de Football-Data.co.uk (córners totales HC/AC) en Supabase.
 // Solo servidor: usa la service role key. No se importa desde la app.
 // Uso: npx tsx --env-file=.env scripts/load-football-data.ts [temporadas separadas por coma, p. ej. 2022,2023,2024,2025,2026]
-import { createClient } from '@supabase/supabase-js';
+import { createServiceClient, isMain, type Db } from './db.ts';
 
 const BASE = 'https://football-data.co.uk/mmz4281';
-const seasons = (process.argv[2] ?? '2022,2023,2024,2025,2026').split(',').map(Number);
 
-const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!url || !key) throw new Error('Faltan SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env');
-// Node 20 no trae WebSocket nativo y estos scripts no usan tiempo real: transporte vacío para que createClient no falle.
-const db = createClient(url, key, { auth: { persistSession: false }, realtime: { transport: class {} as never } });
 
 // CSV simple (Football-Data no usa comillas con comas internas en estas columnas).
 function parseCsv(text: string): Record<string, string>[] {
@@ -34,6 +28,7 @@ function kickoff(date: string, time: string): string | null {
 
 const toInt = (v: string): number | null => (/^\d+$/.test(v) ? Number(v) : null);
 
+export async function loadFootballData(db: Db, seasons: number[], log: (s: string) => void = console.log) {
 const { data: leagues, error: lerr } = await db.from('leagues').select('id, name, football_data_code').not('football_data_code', 'is', null);
 if (lerr) throw lerr;
 if (!leagues?.length) throw new Error('No hay ligas en la tabla leagues. ¿Ejecutaste las migraciones?');
@@ -42,7 +37,7 @@ for (const season of seasons) {
   const code = `${String(season).slice(2)}${String(season + 1).slice(2)}`;
   for (const league of leagues) {
     const res = await fetch(`${BASE}/${code}/${league.football_data_code}.csv`);
-    if (!res.ok) { console.log(`${league.name} ${season}: HTTP ${res.status}, omitido`); continue; }
+    if (!res.ok) { log(`${league.name} ${season}: HTTP ${res.status}, omitido`); continue; }
     const rows = parseCsv(await res.text()).filter((r) => r.HomeTeam && r.AwayTeam);
 
     // Equipos
@@ -91,7 +86,13 @@ for (const season of seasons) {
     const { error: serr } = await db.from('match_stats').upsert(stats, { onConflict: 'match_id', ignoreDuplicates: true });
     if (serr) throw serr;
 
-    console.log(`${league.name} ${season}: ${rows.length} filas CSV, ${matchRows.length} partidos, ${stats.length} con estadísticas (${rows.length - stats.length} sin datos)`);
+    log(`${league.name} ${season}: ${rows.length} filas CSV, ${matchRows.length} partidos, ${stats.length} con estadísticas (${rows.length - stats.length} sin datos)`);
     await new Promise((r) => setTimeout(r, 1000)); // cortesía con el servidor
   }
+}
+}
+
+if (isMain(import.meta.url)) {
+  const seasons = (process.argv[2] ?? '2022,2023,2024,2025,2026').split(',').map(Number);
+  await loadFootballData(createServiceClient(), seasons);
 }

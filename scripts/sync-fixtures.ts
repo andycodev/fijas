@@ -1,12 +1,11 @@
 // Trae los partidos de hoy y de los próximos días (1 solicitud por día) de las 4 ligas y de las
 // competiciones europeas, y los guarda en matches. Solo servidor.
 // Uso: npx tsx --env-file=.env scripts/sync-fixtures.ts [díasHaciaAdelante=1]
-import { createClient } from '@supabase/supabase-js';
+import { createServiceClient, isMain, type Db } from './db.ts';
 import { apiGet, requestsUsedToday } from './api-football.ts';
 import { matchTeam, type DbTeam } from './team-match.ts';
 
 // El plan gratis solo permite fechas desde ayer hasta mañana: más de 1 día adelante lo rechaza (y cuenta como solicitud).
-const DAYS_AHEAD = Number(process.argv[2] ?? 1);
 
 // Competiciones que interesan. Se amplía aquí (p. ej. copas nacionales) sin tocar el resto.
 const DOMESTIC = [39, 140, 135, 78];
@@ -18,10 +17,6 @@ const EUROPEAN = [
 const WANTED = new Set([...DOMESTIC, ...EUROPEAN.map((c) => c.api_football_id)]);
 const MIN_HISTORY = 8; // partidos con córners que se exigen para poder dar un pick
 
-const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: { persistSession: false },
-  realtime: { transport: class {} as never },
-});
 const must = <T>(r: { data: T | null; error: { message: string } | null }): T => {
   if (r.error) throw new Error(r.error.message);
   return r.data as T;
@@ -35,6 +30,7 @@ function statusOf(short: string): 'scheduled' | 'live' | 'finished' | 'postponed
   return 'cancelled';
 }
 
+export async function syncFixtures(db: Db, DAYS_AHEAD = 1, log: (s: string) => void = console.log) {
 // 1) Competiciones europeas en leagues (idempotente)
 must(
   await db
@@ -91,7 +87,7 @@ for (const date of dates) {
   const res = await apiGet('/fixtures', { date }, { maxAgeHours: 6 });
   if (res.body.errors && Object.keys(res.body.errors).length) throw new Error(`API: ${JSON.stringify(res.body.errors)}`);
   const wanted = (res.body.response as any[]).filter((f) => WANTED.has(f.league.id));
-  console.log(`${date}: ${res.body.results} partidos en el mundo, ${wanted.length} de las competiciones elegidas`);
+  log(`${date}: ${res.body.results} partidos en el mundo, ${wanted.length} de las competiciones elegidas`);
 
   for (const f of wanted) {
     const league = leagueByApi.get(f.league.id)!;
@@ -140,11 +136,23 @@ if (teamIds.length) {
   }
 }
 
-console.log('\nPartidos guardados:');
+log('\nPartidos guardados:');
 for (const r of rows.sort((a, b) => a.when.localeCompare(b.when))) {
   const h = history.get(r.home.id) ?? 0, a = history.get(r.away.id) ?? 0;
   const ok = h >= MIN_HISTORY && a >= MIN_HISTORY;
-  console.log(`  ${r.when.slice(0, 16).replace('T', ' ')}Z  ${r.comp.padEnd(24)} ${r.home.name} vs ${r.away.name}  historial ${h}/${a} ${ok ? '✓ con pick posible' : '✗ sin historial suficiente'}`);
+  log(`  ${r.when.slice(0, 16).replace('T', ' ')}Z  ${r.comp.padEnd(24)} ${r.home.name} vs ${r.away.name}  historial ${h}/${a} ${ok ? '✓ con pick posible' : '✗ sin historial suficiente'}`);
 }
-if (unmatched.size) console.log('\nEquipos de ligas nacionales sin unir (revisar alias):\n  ' + [...unmatched].join('\n  '));
-console.log(`\nSolicitudes a API-Football usadas hoy: ${requestsUsedToday()}`);
+if (unmatched.size) log('\nEquipos de ligas nacionales sin unir (revisar alias):\n  ' + [...unmatched].join('\n  '));
+log(`\nSolicitudes a API-Football usadas hoy: ${requestsUsedToday()}`);
+return {
+  saved: rows.length,
+  withHistory: rows.filter((r) => (history.get(r.home.id) ?? 0) >= MIN_HISTORY && (history.get(r.away.id) ?? 0) >= MIN_HISTORY).length,
+  unmatched: [...unmatched],
+  apiRequestsToday: requestsUsedToday(),
+};
+}
+
+if (isMain(import.meta.url)) {
+  // El plan gratis solo permite fechas desde ayer hasta mañana: más de 1 día adelante lo rechaza.
+  await syncFixtures(createServiceClient(), Number(process.argv[2] ?? 1));
+}

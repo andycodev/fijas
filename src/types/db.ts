@@ -41,3 +41,29 @@ export interface BetMoney {
   stake: number;
   profit_loss: number | null;
 }
+
+export interface PickLine {
+  line: number;
+  projection: number;
+  probability: number; // probabilidad de "más de" la línea
+  min_odds: number; // cuota mínima para "más de"
+  model_version: string;
+}
+
+export interface UpcomingMatch {
+  id: number;
+  kickoff_at: string;
+  league: { name: string } | null;
+  home: { name: string } | null;
+  away: { name: string } | null;
+  picks: PickLine[];
+}
+
+export interface ManualOdds {
+  id: number;
+  match_id: number;
+  market: Market;
+  line: number;
+  over_odds: number | null;
+  under_odds: number | null;
+}
