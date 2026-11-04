@@ -75,11 +75,17 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
       Equipos sin unir: {{ refresh.data.value.summary.fixtures.unmatched.join(', ') }}
     </p>
 
-    <p class="text-xs text-ink/60">
-      <strong>Modelo</strong> es la probabilidad que calcula el modelo; <strong>Cuota justa</strong> es 1 / esa
-      probabilidad y no es una cuota de Betano; <strong>Betano</strong> es la cuota de esa casa: la del proveedor (sin verificar) o la que tú escribes (confirmada). El modelo está bien
-      calibrado pero supera por poco al promedio de la liga: un valor muy alto suele indicar una cuota mal leída.
-    </p>
+    <details class="text-xs text-ink/70">
+      <summary class="min-h-touch cursor-pointer py-2 font-bold text-ink">Cómo leer esta pantalla</summary>
+      <ul class="list-disc space-y-1 pl-4">
+        <li><strong>El modelo da X% de acertar:</strong> lo probable que es esa selección según las estadísticas.</li>
+        <li><strong>Cuota justa:</strong> 1 / esa probabilidad. Es lo mínimo que debería pagar Betano para que no pierdas con el tiempo. No es una cuota de Betano.</li>
+        <li><strong>Betano paga:</strong> la cuota real. «Vía proveedor» no está verificada; si la escribes tú, queda confirmada.</li>
+        <li><strong>Valor:</strong> lo que ganas en promedio por cada S/1 apostado si el modelo acierta. Solo conviene apostar cuando está en verde.</li>
+        <li><strong>Muy probable no significa buena apuesta:</strong> lo muy probable suele pagar poco y casi siempre sale «No conviene».</li>
+        <li>El modelo supera por poco al promedio de la liga: un valor muy alto suele ser una cuota mal leída. Compárala con tu Betano antes de apostar.</li>
+      </ul>
+    </details>
   </div>
 
   <OpportunitiesPanel v-if="ready" :matches="filtered" :odds="odds.data.value ?? []" :threshold="threshold" />
