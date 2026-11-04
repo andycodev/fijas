@@ -1,14 +1,158 @@
 <script setup lang="ts">
+import { reactive, ref, watch } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
-import EmptyState from '../components/EmptyState.vue';
 import { useAuthStore } from '../stores/auth';
+import { useLeagues, useProfile, useUpdateProfile } from '../composables/useProfile';
+import type { Market } from '../types/db';
 
 const auth = useAuthStore();
+const profile = useProfile();
+const leagues = useLeagues();
+const update = useUpdateProfile();
+
+const MARKETS: { value: Market; label: string }[] = [
+  { value: 'corners_total', label: 'Córners totales' },
+  { value: 'goals_total', label: 'Goles totales' },
+];
+
+// El umbral se muestra en % y se guarda como fracción (5 % = 0.05).
+const form = reactive({
+  initial_bankroll: 0,
+  stake_mode: 'percent' as 'percent' | 'fixed',
+  stake_value: 2,
+  threshold_pct: 5,
+  daily_bet_limit: 3,
+  pause_level: 0,
+  active_league_ids: [] as number[],
+  active_markets: [] as Market[],
+});
+
+watch(
+  () => profile.data.value,
+  (p) => {
+    if (!p) return;
+    form.initial_bankroll = Number(p.initial_bankroll);
+    form.stake_mode = p.stake_mode;
+    form.stake_value = Number(p.stake_value);
+    form.threshold_pct = Math.round(Number(p.value_threshold) * 10000) / 100;
+    form.daily_bet_limit = p.daily_bet_limit;
+    form.pause_level = p.pause_level;
+    form.active_league_ids = [...p.active_league_ids];
+    form.active_markets = [...p.active_markets];
+  },
+  { immediate: true },
+);
+
+const saved = ref(false);
+
+async function save() {
+  saved.value = false;
+  await update.mutateAsync({
+    initial_bankroll: form.initial_bankroll,
+    stake_mode: form.stake_mode,
+    stake_value: form.stake_value,
+    value_threshold: form.threshold_pct / 100,
+    daily_bet_limit: form.daily_bet_limit,
+    pause_level: form.pause_level,
+    active_league_ids: form.active_league_ids,
+    active_markets: form.active_markets,
+  });
+  saved.value = true;
+}
 </script>
 
 <template>
   <PageHeader title="Ajustes" subtitle="Tu perfil y preferencias" />
-  <EmptyState message="Aún no hay ajustes." />
+
+  <p v-if="profile.isLoading.value" class="text-ink/60">Cargando…</p>
+  <p v-else-if="profile.isError.value" role="alert" class="text-novalue">
+    No se pudo cargar tu perfil.
+  </p>
+
+  <form v-else class="space-y-4" @submit.prevent="save">
+    <section class="card space-y-3 p-4">
+      <h2 class="font-bold">Bankroll y montos</h2>
+
+      <label class="block space-y-1">
+        <span class="text-xs font-semibold">Bankroll inicial</span>
+        <input v-model.number="form.initial_bankroll" type="number" min="0" step="0.01" required class="field" />
+      </label>
+
+      <fieldset class="space-y-1">
+        <legend class="text-xs font-semibold">Modo de monto</legend>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="btn cursor-pointer has-[:checked]:border-value has-[:checked]:text-value">
+            <input v-model="form.stake_mode" type="radio" value="percent" class="sr-only" />
+            Porcentaje
+          </label>
+          <label class="btn cursor-pointer has-[:checked]:border-value has-[:checked]:text-value">
+            <input v-model="form.stake_mode" type="radio" value="fixed" class="sr-only" />
+            Fijo
+          </label>
+        </div>
+      </fieldset>
+
+      <label class="block space-y-1">
+        <span class="text-xs font-semibold">
+          {{ form.stake_mode === 'percent' ? 'Porcentaje del bankroll por apuesta (%)' : 'Monto fijo por apuesta' }}
+        </span>
+        <input v-model.number="form.stake_value" type="number" min="0.01" step="0.01" required class="field" />
+      </label>
+    </section>
+
+    <section class="card space-y-3 p-4">
+      <h2 class="font-bold">Control de riesgo</h2>
+
+      <label class="block space-y-1">
+        <span class="text-xs font-semibold">Umbral de valor (%)</span>
+        <input v-model.number="form.threshold_pct" type="number" step="0.1" required class="field" />
+      </label>
+
+      <label class="block space-y-1">
+        <span class="text-xs font-semibold">Tope diario de apuestas</span>
+        <input v-model.number="form.daily_bet_limit" type="number" min="0" step="1" required class="field" />
+      </label>
+
+      <label class="block space-y-1">
+        <span class="text-xs font-semibold">Nivel de pausa (0 = sin pausa)</span>
+        <input v-model.number="form.pause_level" type="number" min="0" step="1" required class="field" />
+      </label>
+    </section>
+
+    <section class="card space-y-3 p-4">
+      <h2 class="font-bold">Ligas y mercados activos</h2>
+
+      <fieldset class="space-y-1">
+        <legend class="text-xs font-semibold">Ligas</legend>
+        <label
+          v-for="l in leagues.data.value ?? []"
+          :key="l.id"
+          class="flex min-h-touch items-center gap-3"
+        >
+          <input v-model="form.active_league_ids" type="checkbox" :value="l.id" class="h-5 w-5 accent-value" />
+          {{ l.name }}
+        </label>
+      </fieldset>
+
+      <fieldset class="space-y-1">
+        <legend class="text-xs font-semibold">Mercados</legend>
+        <label v-for="m in MARKETS" :key="m.value" class="flex min-h-touch items-center gap-3">
+          <input v-model="form.active_markets" type="checkbox" :value="m.value" class="h-5 w-5 accent-value" />
+          {{ m.label }}
+        </label>
+      </fieldset>
+    </section>
+
+    <p v-if="update.isError.value" role="alert" class="text-xs font-semibold text-novalue">
+      No se pudo guardar. Inténtalo de nuevo.
+    </p>
+    <p v-if="saved && !update.isPending.value" class="text-xs font-semibold text-value">Cambios guardados.</p>
+
+    <button type="submit" class="btn btn-primary w-full" :disabled="update.isPending.value">
+      {{ update.isPending.value ? 'Guardando…' : 'Guardar cambios' }}
+    </button>
+  </form>
+
   <div class="card mt-4 flex items-center justify-between gap-3 p-4 md:hidden">
     <span class="truncate text-xs text-ink/60">{{ auth.user?.email }}</span>
     <button class="btn" @click="auth.signOut()">Cerrar sesión</button>
