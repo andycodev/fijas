@@ -1,16 +1,32 @@
 {
-  "generatedAt": "2026-11-04T15:50:30.547Z",
+  "generatedAt": "2026-11-04T20:03:57.803Z",
   "markets": {
     "corners_total": {
       "version": "v1-nb-n10-k20",
-      "evaluatedMatches": 3114,
+      "evaluatedMatches": 3783,
+      "versus": {
+        "model": {
+          "logloss": 0.6486,
+          "mae": 2.708
+        },
+        "base": {
+          "logloss": 0.6541,
+          "mae": 2.745
+        },
+        "lines": [
+          8.5,
+          9.5,
+          10.5,
+          11.5
+        ]
+      },
       "period": "2024-25 en adelante",
       "buckets": [
         {
           "label": "50–59%",
           "from": 0.5,
           "to": 0.6,
-          "n": 5301,
+          "n": 6433,
           "predicted": 55,
           "actual": 55.3
         },
@@ -18,96 +34,112 @@
           "label": "60–69%",
           "from": 0.6,
           "to": 0.7,
-          "n": 5676,
+          "n": 6899,
           "predicted": 65.1,
-          "actual": 64.4
+          "actual": 64.7
         },
         {
           "label": "70–74%",
           "from": 0.7,
           "to": 0.75,
-          "n": 3085,
-          "predicted": 72.6,
-          "actual": 72.5
+          "n": 3775,
+          "predicted": 72.5,
+          "actual": 72.1
         },
         {
           "label": "75–79%",
           "from": 0.75,
           "to": 0.8,
-          "n": 3286,
+          "n": 4040,
           "predicted": 77.5,
-          "actual": 76.5
+          "actual": 77.2
         },
         {
           "label": "80–84%",
           "from": 0.8,
           "to": 0.85,
-          "n": 3197,
-          "predicted": 82.5,
-          "actual": 82.3
+          "n": 3945,
+          "predicted": 82.4,
+          "actual": 81.9
         },
         {
           "label": "85% o más",
           "from": 0.85,
           "to": 1,
-          "n": 4367,
-          "predicted": 89.2,
-          "actual": 87.7
+          "n": 5172,
+          "predicted": 89,
+          "actual": 87.8
         }
       ]
     },
     "goals_total": {
       "version": "g1-nb-n10-k20",
-      "evaluatedMatches": 3115,
+      "evaluatedMatches": 3784,
+      "versus": {
+        "model": {
+          "logloss": 0.5125,
+          "mae": 1.322
+        },
+        "base": {
+          "logloss": 0.518,
+          "mae": 1.333
+        },
+        "lines": [
+          0.5,
+          1.5,
+          2.5,
+          3.5
+        ]
+      },
       "period": "2024-25 en adelante",
       "buckets": [
         {
           "label": "50–59%",
           "from": 0.5,
           "to": 0.6,
-          "n": 2830,
+          "n": 3440,
           "predicted": 54.5,
-          "actual": 55.5
+          "actual": 56
         },
         {
           "label": "60–69%",
           "from": 0.6,
           "to": 0.7,
-          "n": 2265,
-          "predicted": 65.5,
-          "actual": 64.6
+          "n": 2792,
+          "predicted": 65.4,
+          "actual": 64
         },
         {
           "label": "70–74%",
           "from": 0.7,
           "to": 0.75,
-          "n": 1890,
+          "n": 2225,
           "predicted": 72.6,
-          "actual": 74.3
+          "actual": 73.9
         },
         {
           "label": "75–79%",
           "from": 0.75,
           "to": 0.8,
-          "n": 2030,
+          "n": 2486,
           "predicted": 77.5,
-          "actual": 77.9
+          "actual": 78.1
         },
         {
           "label": "80–84%",
           "from": 0.8,
           "to": 0.85,
-          "n": 1711,
+          "n": 2181,
           "predicted": 82.5,
-          "actual": 82.8
+          "actual": 82.5
         },
         {
           "label": "85% o más",
           "from": 0.85,
           "to": 1,
-          "n": 4849,
-          "predicted": 91.7,
-          "actual": 91.9
+          "n": 5796,
+          "predicted": 91.8,
+          "actual": 91.7
         }
       ]
     }

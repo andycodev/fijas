@@ -20,10 +20,11 @@ export const BAND_LABEL: Record<Band, string> = {
   very_high: 'Probabilidad muy alta',
 };
 
+// La probabilidad es una predicción, no un veredicto: se pinta con la familia azul (el verde queda para resultados).
 export const BAND_CLASS: Record<Band, string> = {
-  discard: 'bg-line text-ink/60',
-  moderate: 'bg-line text-ink/70',
+  discard: 'bg-sunken text-ink/60',
+  moderate: 'bg-sunken text-ink/70',
   watch: 'bg-marginal/10 text-marginal',
-  high: 'bg-value/10 text-value',
-  very_high: 'bg-value/10 text-value',
+  high: 'bg-primary/10 text-brand',
+  very_high: 'bg-primary/15 text-brand',
 };

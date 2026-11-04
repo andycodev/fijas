@@ -3,6 +3,8 @@ import Betano from './Betano.vue';
 import { computed, reactive, ref } from 'vue';
 import { ChevronDownIcon } from '@heroicons/vue/24/outline';
 import { signalFor, type Signal } from '../lib/value';
+import ProbabilityMeter from './ProbabilityMeter.vue';
+import VerdictChip from './VerdictChip.vue';
 import { BAND_CLASS, BAND_LABEL } from '../lib/probability';
 import { MARKET_LABEL } from '../lib/markets';
 import { confidenceFor, listSelections, type CalibrationBucket, type Confidence, type Selection } from '../lib/opportunities';
@@ -74,20 +76,13 @@ const visible = computed(() => (showAll.value ? sorted.value : sorted.value.slic
 const best = computed(() => sorted.value.find((s) => s.ev !== null && signalFor(s.ev, props.threshold) === 'green') ?? null);
 const hidden = computed(() => all.value.length - eligible.value.length);
 
-const VERDICT: Record<Signal | 'none', { label: string; cls: string }> = {
-  green: { label: 'Vale la pena', cls: 'bg-value/10 text-value' },
-  yellow: { label: 'Marginal', cls: 'bg-marginal/10 text-marginal' },
-  red: { label: 'No conviene', cls: 'bg-novalue/10 text-novalue' },
-  none: { label: 'Sin cuota', cls: 'bg-line text-ink/70' },
-};
 const signalOf = (s: Selection): Signal | null => (s.ev === null ? null : signalFor(s.ev, props.threshold));
-const verdictOf = (s: Selection) => VERDICT[signalOf(s) ?? 'none'];
 const needed = (s: Selection) => (1 + props.threshold) / s.probability;
 
 const buckets = computed(() => (backtest.markets as Record<string, { buckets: CalibrationBucket[] }>)[props.market]?.buckets);
 const confidenceOf = (s: Selection) => confidenceFor(s, buckets.value);
 const CONF_LABEL: Record<Confidence, string> = { high: 'Confianza alta', medium: 'Confianza media', low: 'Confianza baja' };
-const CONF_CLASS: Record<Confidence, string> = { high: 'text-value', medium: 'text-marginal', low: 'text-novalue' };
+const CONF_DOT: Record<Confidence, string> = { high: 'bg-value', medium: 'bg-marginal', low: 'bg-novalue' };
 
 const pct = (p: number) => `${(p * 100).toFixed(1)}%`;
 const odds2 = (o: number) => o.toFixed(2);
@@ -103,13 +98,13 @@ function persist(line: number) {
 </script>
 
 <template>
-  <article class="card">
-    <button class="flex min-h-touch w-full items-center gap-3 p-4 text-left" :aria-expanded="open" @click="open = !open">
+  <article class="card overflow-hidden">
+    <button class="pitch flex min-h-touch w-full items-center gap-3 bg-gradient-to-br from-tint/60 to-transparent p-4 text-left" :aria-expanded="open" @click="open = !open">
       <div class="min-w-0 flex-1">
-        <p class="text-xs text-ink/60">{{ match.league?.name }} · {{ kickoff }}</p>
-        <p class="truncate font-bold">{{ match.home?.name }} vs {{ match.away?.name }}</p>
-        <p class="mt-1 text-xs">
-          <span v-if="best" class="rounded bg-value/10 px-2 py-0.5 font-bold text-value">
+        <p class="eyebrow">{{ match.league?.name }} · {{ kickoff }}</p>
+        <p class="truncate text-base font-extrabold">{{ match.home?.name }} <span class="font-semibold text-ink/45">vs</span> {{ match.away?.name }}</p>
+        <p class="mt-1.5 text-xs">
+          <span v-if="best" class="inline-flex items-center rounded-full bg-value/15 px-2.5 py-1 font-bold text-value">
             Mejor: {{ best.side === 'over' ? 'Más de' : 'Menos de' }} {{ best.line }} · {{ evText(best.ev!) }}
           </span>
           <span v-else-if="eligible.some((s) => s.betano)" class="text-ink/60">Sin selecciones con valor ahora</span>
@@ -117,22 +112,23 @@ function persist(line: number) {
         </p>
       </div>
       <div class="text-right">
-        <p class="text-xs text-ink/60">{{ MARKET_LABEL[market] }} esperados</p>
-        <p class="font-extrabold">{{ projection?.toFixed(1) }}</p>
+        <p class="text-[11px] text-ink/55">{{ MARKET_LABEL[market] }} esperados</p>
+        <p class="num text-2xl font-extrabold leading-none text-brand">{{ projection?.toFixed(1) }}</p>
       </div>
-      <ChevronDownIcon class="h-5 w-5 shrink-0 transition-transform" :class="{ 'rotate-180': open }" />
+      <ChevronDownIcon class="h-5 w-5 shrink-0 text-ink/50 transition-transform" :class="{ 'rotate-180': open }" />
     </button>
 
     <div v-if="open" class="border-t border-line">
-      <ul>
-        <li v-for="s in visible" :key="s.key" class="space-y-2 border-b border-line px-4 py-3">
-          <div class="flex items-start justify-between gap-3">
+      <ul class="divide-y divide-line">
+        <li v-for="s in visible" :key="s.key" class="space-y-3 px-4 py-4">
+          <!-- Selección + veredicto -->
+          <div class="flex flex-wrap items-start justify-between gap-2">
             <div class="min-w-0">
               <button
                 v-if="s.ev !== null"
                 type="button"
-                class="mb-1.5 inline-flex min-h-touch items-center gap-1.5 rounded-md px-3 text-sm font-extrabold"
-                :class="verdictOf(s).cls"
+                class="mb-1.5 inline-flex min-h-touch items-center gap-1.5 rounded-lg px-3 text-sm font-extrabold"
+                :class="signalOf(s) === 'green' ? 'bg-value/15 text-value' : signalOf(s) === 'yellow' ? 'bg-marginal/15 text-marginal' : 'bg-novalue/15 text-novalue'"
                 aria-haspopup="dialog"
                 :aria-label="`Valor esperado ${evText(s.ev)}. Ver cómo se calcula`"
                 @click="evOpen = s"
@@ -140,29 +136,54 @@ function persist(line: number) {
                 Valor esperado {{ evText(s.ev) }}
                 <InformationCircleIcon class="h-5 w-5" aria-hidden="true" />
               </button>
-              <p class="font-bold">{{ s.side === 'over' ? 'Más de' : 'Menos de' }} {{ s.line }} {{ MARKET_LABEL[market].toLowerCase() }}</p>
-              <p class="text-xs text-ink/70">
-                Modelo <strong>{{ pct(s.probability) }}</strong> · cuota justa <strong>{{ odds2(s.fairOdds) }}</strong>
-              </p>
-              <span class="mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold" :class="BAND_CLASS[s.band]">{{ BAND_LABEL[s.band] }}</span>
+              <p class="text-base font-extrabold">{{ s.side === 'over' ? 'Más de' : 'Menos de' }} {{ s.line }} {{ MARKET_LABEL[market].toLowerCase() }}</p>
             </div>
-            <span class="shrink-0 rounded px-2 py-0.5 text-[11px] font-bold" :class="verdictOf(s).cls">{{ verdictOf(s).label }}</span>
+            <VerdictChip :signal="signalOf(s)" />
           </div>
 
-          <p v-if="s.betano" class="text-xs">
-            <Betano /> paga <strong>{{ odds2(s.betano.odds) }}</strong>
-            · {{ s.betano.odds >= s.fairOdds ? '+' : '−' }}{{ Math.abs(s.betano.odds - s.fairOdds).toFixed(2) }} frente a la justa
-            <template v-if="signalOf(s) !== 'green'"> · para valer la pena debería pagar al menos <strong>{{ odds2(needed(s)) }}</strong></template>
-            <span class="block text-[11px] text-ink/50">
-              <template v-if="s.betano.origin === 'manual'">Cuota escrita por ti (confirmada)</template>
-              <template v-else><Betano /> vía proveedor · {{ fmtTime(s.betano.capturedAt) }} · sin verificar</template>
-            </span>
-          </p>
-          <p v-else class="text-xs text-ink/50">No hay cuota de <Betano /> para esta selección.</p>
+          <!-- Predicción -->
+          <div class="rounded-lg bg-tint/45 p-3">
+            <div class="flex items-end justify-between gap-3">
+              <div>
+                <p class="eyebrow text-brand">Predicción</p>
+                <p class="num text-3xl font-extrabold leading-none text-brand">{{ pct(s.probability) }}</p>
+              </div>
+              <div class="text-right text-xs">
+                <p class="text-ink/60">Cuota justa</p>
+                <p class="num text-lg font-extrabold">{{ odds2(s.fairOdds) }}</p>
+              </div>
+            </div>
+            <div class="mt-2"><ProbabilityMeter :value="s.probability" :min="minProbability || null" /></div>
+            <span class="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold" :class="BAND_CLASS[s.band]">{{ BAND_LABEL[s.band] }}</span>
+          </div>
 
-          <p class="text-[11px] text-ink/60">
-            Datos: {{ s.gamesHome ?? '?' }} y {{ s.gamesAway ?? '?' }} partidos<template v-if="daysAgo(s.latestGameAt) !== null">, el más antiguo de hace {{ daysAgo(s.latestGameAt) }} días</template>
-            · <span class="font-bold" :class="CONF_CLASS[confidenceOf(s).level]">{{ CONF_LABEL[confidenceOf(s).level] }}</span>
+          <!-- Recomendación -->
+          <div class="rounded-lg border border-line p-3 text-xs">
+            <p class="eyebrow mb-1">Recomendación</p>
+            <template v-if="s.betano">
+              <p>
+                <Betano /> paga <strong class="num text-base">{{ odds2(s.betano.odds) }}</strong>
+                <span :class="s.betano.odds >= s.fairOdds ? 'text-value' : 'text-novalue'">
+                  · {{ s.betano.odds >= s.fairOdds ? '+' : '−' }}{{ Math.abs(s.betano.odds - s.fairOdds).toFixed(2) }} frente a la justa
+                </span>
+              </p>
+              <p v-if="signalOf(s) !== 'green'" class="mt-0.5 text-ink/70">
+                Para valer la pena debería pagar al menos <strong class="num">{{ odds2(needed(s)) }}</strong>.
+              </p>
+              <p class="mt-0.5 text-[11px] text-ink/50">
+                <template v-if="s.betano.origin === 'manual'">Cuota escrita por ti (confirmada)</template>
+                <template v-else><Betano /> vía proveedor · {{ fmtTime(s.betano.capturedAt) }} · sin verificar</template>
+              </p>
+            </template>
+            <p v-else class="text-ink/55">No hay cuota de <Betano /> para esta selección.</p>
+          </div>
+
+          <!-- Estadísticas -->
+          <p class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-sunken px-3 py-2 text-[11px] text-ink/65">
+            <span class="eyebrow !text-[10px]">Estadísticas</span>
+            <span><strong class="num">{{ s.gamesHome ?? '?' }} + {{ s.gamesAway ?? '?' }}</strong> partidos</span>
+            <span v-if="daysAgo(s.latestGameAt) !== null">· dato más antiguo de hace {{ daysAgo(s.latestGameAt) }} d</span>
+            <span class="inline-flex items-center gap-1 font-bold">· <span class="h-2 w-2 rounded-full" :class="CONF_DOT[confidenceOf(s).level]" aria-hidden="true" />{{ CONF_LABEL[confidenceOf(s).level] }}</span>
           </p>
 
           <div class="flex flex-wrap items-center gap-2">

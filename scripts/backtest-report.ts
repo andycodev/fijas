@@ -26,12 +26,16 @@ for (const cfg of MARKETS) {
   const games = await loadGames(db, cfg.market);
   const hist = new Map<number, TeamGame[]>();
   let sumH = 0, sumA = 0, n = 0;
-  const preds: { mean: number; actual: number }[] = [];
+  const preds: { mean: number; baseMean: number; actual: number }[] = [];
 
   for (const g of games) {
     const hh = hist.get(g.home) ?? [], ah = hist.get(g.away) ?? [];
     if (n >= 300 && hh.length >= MIN_GAMES && ah.length >= MIN_GAMES && g.season >= FIRST_EVAL_SEASON) {
-      preds.push({ mean: projectTotal(hh, ah, { homeMean: sumH / n, awayMean: sumA / n }, cfg.params).total, actual: g.h + g.a });
+      preds.push({
+        mean: projectTotal(hh, ah, { homeMean: sumH / n, awayMean: sumA / n }, cfg.params).total,
+        baseMean: sumH / n + sumA / n, // referencia: la media de la liga, sin mirar a los equipos
+        actual: g.h + g.a,
+      });
     }
     hist.set(g.home, [...hh, { corners_for: g.h, corners_against: g.a }]);
     hist.set(g.away, [...ah, { corners_for: g.a, corners_against: g.h }]);
@@ -39,6 +43,24 @@ for (const cfg of MARKETS) {
   }
 
   const r = fitDispersion(preds);
+  const rBase = fitDispersion(preds.map((p) => ({ mean: p.baseMean, actual: p.actual })));
+
+  // Comparación con la referencia (logloss: menor es mejor) sobre las líneas centrales de cada mercado
+  const SCORE_LINES = cfg.market === 'goals_total' ? [0.5, 1.5, 2.5, 3.5] : [8.5, 9.5, 10.5, 11.5];
+  const score = (key: 'mean' | 'baseMean', disp: number) => {
+    let ll = 0, k = 0, ae = 0;
+    for (const p of preds) {
+      ae += Math.abs(p[key] - p.actual);
+      for (const line of SCORE_LINES) {
+        const pr = Math.min(0.999, Math.max(0.001, probOver(line, p[key], disp)));
+        const y = p.actual > line ? 1 : 0;
+        ll += -(y * Math.log(pr) + (1 - y) * Math.log(1 - pr));
+        k++;
+      }
+    }
+    return { logloss: Math.round((ll / k) * 10000) / 10000, mae: Math.round((ae / preds.length) * 1000) / 1000 };
+  };
+  const model = score('mean', r), base = score('baseMean', rBase);
   const acc = BUCKETS.map((b) => ({ ...b, n: 0, predicted: 0, hits: 0 }));
   for (const p of preds) {
     for (const line of cfg.lines) {
@@ -58,6 +80,7 @@ for (const cfg of MARKETS) {
   out[cfg.market] = {
     version: cfg.version,
     evaluatedMatches: preds.length,
+    versus: { model, base, lines: SCORE_LINES }, // modelo contra "predecir siempre la media de la liga"
     period: `${FIRST_EVAL_SEASON}-${String((FIRST_EVAL_SEASON + 1) % 100).padStart(2, '0')} en adelante`,
     buckets: acc.map((b) => ({
       label: b.label, from: b.from, to: Math.min(b.to, 1), n: b.n,

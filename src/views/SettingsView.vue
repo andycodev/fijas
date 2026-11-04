@@ -78,7 +78,7 @@ async function save() {
 
   <form v-else class="space-y-4" @submit.prevent="save">
     <section class="card space-y-3 p-4">
-      <h2 class="font-bold">Bankroll y montos</h2>
+      <h2 class="font-bold">Capital y montos</h2>
 
       <label class="block space-y-1">
         <span class="text-xs font-semibold">Capital inicial (capital protegido)</span>
@@ -88,11 +88,11 @@ async function save() {
       <fieldset class="space-y-1">
         <legend class="text-xs font-semibold">Modo de monto</legend>
         <div class="grid grid-cols-2 gap-2">
-          <label class="btn cursor-pointer has-[:checked]:border-value has-[:checked]:text-value">
+          <label class="btn cursor-pointer has-[:checked]:border-primary has-[:checked]:text-brand">
             <input v-model="form.stake_mode" type="radio" value="percent" class="sr-only" />
             Porcentaje
           </label>
-          <label class="btn cursor-pointer has-[:checked]:border-value has-[:checked]:text-value">
+          <label class="btn cursor-pointer has-[:checked]:border-primary has-[:checked]:text-brand">
             <input v-model="form.stake_mode" type="radio" value="fixed" class="sr-only" />
             Fijo
           </label>
@@ -156,7 +156,7 @@ async function save() {
           :key="l.id"
           class="flex min-h-touch items-center gap-3"
         >
-          <input v-model="form.active_league_ids" type="checkbox" :value="l.id" class="h-5 w-5 accent-value" />
+          <input v-model="form.active_league_ids" type="checkbox" :value="l.id" class="h-5 w-5 accent-primary" />
           {{ l.name }}
         </label>
       </fieldset>
@@ -164,7 +164,7 @@ async function save() {
       <fieldset class="space-y-1">
         <legend class="text-xs font-semibold">Mercados</legend>
         <label v-for="m in MARKETS" :key="m.value" class="flex min-h-touch items-center gap-3">
-          <input v-model="form.active_markets" type="checkbox" :value="m.value" class="h-5 w-5 accent-value" />
+          <input v-model="form.active_markets" type="checkbox" :value="m.value" class="h-5 w-5 accent-primary" />
           {{ m.label }}
         </label>
       </fieldset>

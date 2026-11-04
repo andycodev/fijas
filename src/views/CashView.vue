@@ -125,7 +125,28 @@ function diffClass(diff: number) {
     <h2 id="months-title" class="font-bold">Evolución mensual</h2>
     <MonthlyChart :months="months" :base="initial" />
 
-    <div class="overflow-x-auto">
+    <!-- Celular: una tarjeta por mes -->
+    <ul class="space-y-2 md:hidden">
+      <li v-for="m in monthsDesc" :key="m.key" class="rounded-lg border border-line bg-sunken p-3 text-xs">
+        <div class="flex items-baseline justify-between gap-2">
+          <p class="font-bold first-letter:uppercase">{{ monthName(m.key) }}</p>
+          <p class="num text-base font-extrabold">{{ formatMoney(m.final) }}</p>
+        </div>
+        <dl class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+          <div class="flex justify-between"><dt class="text-ink/60">Inicio</dt><dd class="num">{{ formatMoney(m.start) }}</dd></div>
+          <div class="flex justify-between"><dt class="text-ink/60">Rendimiento</dt><dd class="num">{{ m.returnPct === null ? '—' : m.returnPct.toFixed(1) + '%' }}</dd></div>
+          <div class="flex justify-between"><dt class="text-ink/60">Ganancias</dt><dd class="num text-value">{{ formatMoney(m.gains) }}</dd></div>
+          <div class="flex justify-between"><dt class="text-ink/60">Pérdidas</dt><dd class="num text-novalue">{{ formatMoney(m.losses) }}</dd></div>
+          <div class="col-span-2 flex justify-between">
+            <dt class="text-ink/60">Frente al mes anterior</dt>
+            <dd class="num" :class="m.vsPreviousMonth === null ? '' : m.vsPreviousMonth >= 0 ? 'text-value' : 'text-novalue'">{{ m.vsPreviousMonth === null ? '—' : money(m.vsPreviousMonth) }}</dd>
+          </div>
+        </dl>
+      </li>
+    </ul>
+
+    <!-- Pantallas anchas: tabla -->
+    <div class="hidden overflow-x-auto md:block">
       <table class="w-full min-w-[34rem] text-left text-xs">
         <caption class="sr-only">Resumen por mes</caption>
         <thead class="text-ink/60">
@@ -141,7 +162,7 @@ function diffClass(diff: number) {
         </thead>
         <tbody class="divide-y divide-line">
           <tr v-for="m in monthsDesc" :key="m.key">
-            <th scope="row" class="py-2 pr-2 font-semibold capitalize">{{ monthName(m.key) }}</th>
+            <th scope="row" class="py-2 pr-2 font-semibold first-letter:uppercase">{{ monthName(m.key) }}</th>
             <td class="py-2 pr-2 text-right">{{ formatMoney(m.start) }}</td>
             <td class="py-2 pr-2 text-right text-value">{{ formatMoney(m.gains) }}</td>
             <td class="py-2 pr-2 text-right text-novalue">{{ formatMoney(m.losses) }}</td>
@@ -165,11 +186,11 @@ function diffClass(diff: number) {
     <h2 class="font-bold">Depósito o retiro</h2>
 
     <div class="grid grid-cols-2 gap-2">
-      <label class="btn cursor-pointer has-[:checked]:border-value has-[:checked]:text-value">
+      <label class="btn cursor-pointer has-[:checked]:border-primary has-[:checked]:text-brand">
         <input v-model="form.type" type="radio" value="deposit" class="sr-only" />
         Depósito
       </label>
-      <label class="btn cursor-pointer has-[:checked]:border-novalue has-[:checked]:text-novalue">
+      <label class="btn cursor-pointer has-[:checked]:border-primary has-[:checked]:text-brand">
         <input v-model="form.type" type="radio" value="withdrawal" class="sr-only" />
         Retiro
       </label>

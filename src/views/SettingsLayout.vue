@@ -18,7 +18,7 @@ const tabs = [
       :key="t.name"
       :to="{ name: t.name }"
       class="btn !px-2 text-center text-xs"
-      exact-active-class="!border-value !text-value"
+      exact-active-class="!border-primary !text-brand"
     >
       {{ t.label }}
     </RouterLink>

@@ -17,7 +17,7 @@ const level = computed<UsageLevel>(() => (limit.value && used.value !== null ? u
 const service = computed(() => serviceState(snapshot.value?.last_status ?? null));
 const staleDay = computed(() => !!snapshot.value && snapshot.value.day !== new Date().toISOString().slice(0, 10));
 
-const BAR_CLASS: Record<UsageLevel, string> = { ok: 'bg-value', watch: 'bg-marginal', high: 'bg-marginal', critical: 'bg-novalue', exhausted: 'bg-novalue' };
+const BAR_CLASS: Record<UsageLevel, string> = { ok: 'bg-primary', watch: 'bg-marginal', high: 'bg-marginal', critical: 'bg-novalue', exhausted: 'bg-novalue' };
 
 // Preferencias de consumo (se guardan en el perfil)
 const form = reactive({ cap: 90, interval: 60, resetHour: 0 });

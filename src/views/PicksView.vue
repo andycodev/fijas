@@ -1,230 +1,207 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue';
+import { RouterLink } from 'vue-router';
+import { ArrowPathIcon, ArrowRightIcon, BeakerIcon } from '@heroicons/vue/24/outline';
 import Betano from '../components/Betano.vue';
-import { computed, ref, watch } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ArrowPathIcon } from '@heroicons/vue/24/outline';
-import PageHeader from '../components/PageHeader.vue';
 import EmptyState from '../components/EmptyState.vue';
-import MatchPickCard from '../components/MatchPickCard.vue';
-import AnalysisSummary from '../components/AnalysisSummary.vue';
-import ModelAccuracy from '../components/ModelAccuracy.vue';
-import { useOdds, useRefresh, useUpcomingMatches } from '../composables/usePicks';
-import { useProfile, useUpdateProfile } from '../composables/useProfile';
+import OpportunityCard from '../components/OpportunityCard.vue';
+import PageHeader from '../components/PageHeader.vue';
+import PicksSummary from '../components/PicksSummary.vue';
 import { useApiUsage } from '../composables/useApiUsage';
-import { MARKET_LABEL } from '../lib/markets';
-import { DEFAULT_MIN_PROBABILITY } from '../lib/probability';
+import { useMinProbability } from '../composables/useMinProbability';
+import { useOdds, useRefresh, useUpcomingMatches } from '../composables/usePicks';
+import { useProfile } from '../composables/useProfile';
+import { analyze, type CalibrationBucket } from '../lib/opportunities';
+import { MARKET_LABEL, selectionLabel } from '../lib/markets';
+import backtest from '../data/backtest.json';
 import type { Market } from '../types/db';
 
-const route = useRoute();
-const router = useRouter();
 const matches = useUpcomingMatches();
 const profile = useProfile();
-const updateProfile = useUpdateProfile();
 const refresh = useRefresh();
 const { snapshot: apiUsage } = useApiUsage();
+const { minProbability, setMinProbability } = useMinProbability();
 
-const TABS: Market[] = ['goals_total', 'corners_total'];
-const SLUG: Record<Market, string> = { goals_total: 'goles', corners_total: 'corners' };
-const market = computed<Market>(() => (route.query.mercado === 'corners' ? 'corners_total' : 'goals_total'));
-const selectMarket = (m: Market) => router.replace({ query: { ...route.query, mercado: SLUG[m] } });
-
-// Probabilidad mínima configurable (se guarda en el perfil)
-const minProbability = ref(DEFAULT_MIN_PROBABILITY);
-watch(
-  () => profile.data.value?.min_probability,
-  (v) => { if (v !== undefined && v !== null) minProbability.value = Number(v); },
-  { immediate: true },
-);
-function setMinProbability(v: number) {
-  minProbability.value = v;
-  updateProfile.mutate({ min_probability: v });
-}
-const showBelowMinimum = ref(false);
-const cardMinimum = computed(() => (showBelowMinimum.value ? 0 : minProbability.value));
-
-// Filtros
-const day = ref<'all' | 'today' | 'tomorrow'>('all');
-const league = ref('');
-const team = ref('');
-
-const sameDay = (iso: string, offset: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return new Date(iso).toDateString() === d.toDateString();
-};
-
-// Solo se analizan las ligas que el usuario tiene activas (si aún no eligió ninguna, se muestran todas).
+// Solo se analizan las ligas activas (si aún no elegiste ninguna, todas).
 const activeIds = computed(() => profile.data.value?.active_league_ids ?? []);
 const activeMatches = computed(() => (matches.data.value ?? []).filter((m) => !activeIds.value.length || activeIds.value.includes(m.league_id)));
-
-const leagues = computed(() => [...new Set(activeMatches.value.map((m) => m.league?.name).filter(Boolean))] as string[]);
-
-const filtered = computed(() =>
-  activeMatches.value.filter((m) => {
-    if (day.value === 'today' && !sameDay(m.kickoff_at, 0)) return false;
-    if (day.value === 'tomorrow' && !sameDay(m.kickoff_at, 1)) return false;
-    if (league.value && m.league?.name !== league.value) return false;
-    const q = team.value.trim().toLowerCase();
-    if (q && !`${m.home?.name} ${m.away?.name}`.toLowerCase().includes(q)) return false;
-    return true;
-  }),
-);
-
-// Un partido se muestra si, en este mercado, alguna selección (más de o menos de) llega a la probabilidad mínima.
-const reachesMinimum = (m: (typeof filtered.value)[number]) =>
-  m.picks.some((p) => p.market === market.value && (Number(p.probability) >= cardMinimum.value || 1 - Number(p.probability) >= cardMinimum.value));
-const withPicks = computed(() => filtered.value.filter(reachesMinimum));
-const withoutPicks = computed(() => filtered.value.filter((m) => !reachesMinimum(m)));
-const noHistory = (m: (typeof filtered.value)[number]) => !m.picks.some((p) => p.market === market.value);
-
 const odds = useOdds(() => (matches.data.value ?? []).map((m) => m.id));
 const threshold = computed(() => Number(profile.data.value?.value_threshold ?? 0.05));
 const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value && !profile.isLoading.value);
+
+const analysis = computed(() =>
+  analyze(activeMatches.value, odds.data.value ?? [], { minProbability: minProbability.value, valueThreshold: threshold.value }),
+);
+
+// Filtro de mercado de las recomendaciones
+const marketFilter = ref<'all' | Market>('all');
+const FILTERS: { value: 'all' | Market; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'goals_total', label: 'Goles' },
+  { value: 'corners_total', label: 'Córners' },
+];
+const recommended = computed(() => analysis.value.recommended.filter((s) => marketFilter.value === 'all' || s.market === marketFilter.value));
+const countOf = (m: 'all' | Market) => analysis.value.recommended.filter((s) => m === 'all' || s.market === m).length;
+
+// Indicador de confianza en el modelo, con el tramo de tu probabilidad mínima (el detalle vive en «Modelo»).
+const trust = computed(() =>
+  (['goals_total', 'corners_total'] as Market[]).map((m) => {
+    const buckets = (backtest.markets as Record<string, { buckets: CalibrationBucket[] }>)[m]?.buckets ?? [];
+    const b = buckets.find((x) => minProbability.value >= x.from && minProbability.value < (x.to >= 1 ? 1.0001 : x.to));
+    return { market: m, bucket: b };
+  }),
+);
+
+const minutesAgo = computed(() => {
+  const at = profile.data.value?.last_refresh_at;
+  return at ? Math.max(0, Math.round((Date.now() - Date.parse(at)) / 60_000)) : null;
+});
+const ago = (min: number) => (min < 1 ? 'hace un momento' : min < 60 ? `hace ${min} min` : min < 1440 ? `hace ${Math.floor(min / 60)} h` : `hace ${Math.floor(min / 1440)} d`);
+
+const pct = (p: number) => `${(p * 100).toFixed(1)}%`;
+const evText = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n * 100).toFixed(1)}%`;
 </script>
 
 <template>
-  <PageHeader title="Picks" subtitle="Goles y córners de partido completo · hoy y mañana" />
+  <PageHeader title="Picks" eyebrow="Análisis">
+    <template #subtitle>Oportunidades de goles y córners de partido completo frente a la cuota de <Betano />.</template>
+    <template #actions>
+      <button class="btn btn-primary" :disabled="refresh.isPending.value" @click="refresh.mutate(false)">
+        <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': refresh.isPending.value }" />
+        {{ refresh.isPending.value ? 'Actualizando…' : 'Actualizar' }}
+      </button>
+    </template>
+  </PageHeader>
 
-  <div class="card mb-4 space-y-2 p-4">
-    <button class="btn btn-primary w-full" :disabled="refresh.isPending.value" @click="refresh.mutate(false)">
-      <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': refresh.isPending.value }" />
-      {{ refresh.isPending.value ? 'Actualizando…' : 'Actualizar partidos, picks y cuotas' }}
-    </button>
-
-    <p v-if="refresh.isError.value" role="alert" class="text-xs font-semibold text-novalue">
-      {{ (refresh.error.value as Error).message }}
+  <!-- Estado de la actualización -->
+  <div class="mb-4 space-y-2 text-xs">
+    <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-ink/60">
+      <span v-if="minutesAgo !== null">Actualizado {{ ago(minutesAgo) }}</span>
+      <span v-if="apiUsage">
+        API: <strong class="num">{{ apiUsage.requests_used }}/{{ apiUsage.daily_limit ?? '?' }}</strong> solicitudes hoy
+        <RouterLink :to="{ name: 'settings-api' }" class="font-semibold text-brand underline">detalle</RouterLink>
+      </span>
     </p>
+
+    <p v-if="refresh.isError.value" role="alert" class="font-semibold text-novalue">{{ (refresh.error.value as Error).message }}</p>
     <template v-else-if="refresh.data.value">
-      <div v-if="refresh.data.value.skipped" class="space-y-2 text-xs">
+      <div v-if="refresh.data.value.skipped" class="card flex flex-wrap items-center justify-between gap-2 p-3">
         <p class="font-semibold text-marginal">
-          Se actualizó hace poco. La próxima actualización automática está permitida desde las
-          {{ new Date(refresh.data.value.nextAllowedAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) }}
-          (frecuencia configurable en Ajustes → Consumo de API).
+          Se actualizó hace poco. Próxima actualización automática desde las
+          {{ new Date(refresh.data.value.nextAllowedAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) }}.
         </p>
-        <button class="btn w-full" :disabled="refresh.isPending.value" @click="refresh.mutate(true)">Actualizar igualmente</button>
+        <button class="btn !min-h-9 text-xs" :disabled="refresh.isPending.value" @click="refresh.mutate(true)">Actualizar igualmente</button>
       </div>
       <template v-else>
-        <p v-if="refresh.data.value.apiStopped" role="alert" class="text-xs font-semibold text-novalue">
-          Se alcanzó el tope de solicitudes de hoy: se detuvieron las consultas a la API. Se usaron los datos ya guardados.
+        <p v-if="refresh.data.value.apiStopped" role="alert" class="font-semibold text-novalue">
+          Se alcanzó el tope de solicitudes de hoy: se detuvieron las consultas a la API y se usaron los datos guardados.
         </p>
-        <p class="text-xs text-value">
+        <p class="text-value">
           Listo: {{ refresh.data.value.fixtures.saved }} partidos guardados, {{ refresh.data.value.picks.matches }} con proyección.
-          Cuotas de <Betano />: {{ refresh.data.value.odds.withOdds }} partidos con cuotas, {{ refresh.data.value.odds.without }} sin cuotas disponibles.
+          Cuotas de <Betano />: {{ refresh.data.value.odds.withOdds }} partidos con cuotas, {{ refresh.data.value.odds.without }} sin cuotas.
         </p>
-        <p v-if="refresh.data.value.fixtures.unmatched.length" class="text-xs font-semibold text-marginal">
+        <p v-if="refresh.data.value.fixtures.unmatched.length" class="font-semibold text-marginal">
           Equipos sin unir: {{ refresh.data.value.fixtures.unmatched.join(', ') }}
         </p>
       </template>
     </template>
-    <p v-if="apiUsage" class="text-[11px] text-ink/60">
-      Consumo de la API hoy: {{ apiUsage.requests_used }}/{{ apiUsage.daily_limit ?? '?' }} según el proveedor.
-      <RouterLink :to="{ name: 'settings-api' }" class="font-semibold underline">Ver detalle</RouterLink>
-    </p>
-
-    <details class="text-xs text-ink/70">
-      <summary class="min-h-touch cursor-pointer py-2 font-bold text-ink">Cómo leer esta pantalla</summary>
-      <ul class="list-disc space-y-1 pl-4">
-        <li><strong>Probabilidad mínima:</strong> solo se recomienda lo que el modelo cree que acierta con ese porcentaje o más (por defecto 75%).</li>
-        <li><strong>Cuota justa:</strong> 1 / probabilidad. Es lo mínimo que debería pagar <Betano /> para que no pierdas con el tiempo. No es una cuota de <Betano />.</li>
-        <li><strong>Cuota de <Betano />:</strong> «vía proveedor» no está verificada; si la escribes tú, queda confirmada.</li>
-        <li>
-          <strong>Valor esperado (EV):</strong> lo que ganas o pierdes <em>en promedio</em> por cada S/1 que apuestas, si repitieras la
-          misma apuesta muchísimas veces y la probabilidad del modelo fuera correcta. Se calcula así: probabilidad × cuota − 1.
-          <span class="mt-1 block rounded-md bg-canvas p-2">
-            <strong>Ejemplo:</strong> el modelo da 65% y <Betano /> paga 1.70 → 0.65 × 1.70 − 1 = <strong>+10.5%</strong>. Con S/10, la
-            ganancia esperada es S/1.05 por apuesta. En una sola apuesta ganas S/7 (si aciertas) o pierdes S/10 (si fallas); el
-            promedio solo aparece con muchas repeticiones.
-          </span>
-        </li>
-        <li>
-          <strong>Positivo, cero o negativo:</strong> positivo = la cuota paga más de lo que el riesgo merece; cero = justo; negativo =
-          a la larga pierdes. Muy probable no significa buena apuesta: una selección del 90% pagando 1.05 tiene valor negativo.
-        </li>
-        <li>
-          <strong>Valor muy alto = desconfía.</strong> Por encima de +15% la app te avisa: casi siempre es una cuota desfasada o mal
-          leída, o algo que el modelo no sabe (bajas, rotaciones). Compárala con tu <Betano /> antes de apostar.
-        </li>
-        <li><strong>Toca el valor esperado</strong> (arriba a la izquierda de cada selección) para ver cómo se calcula, con los números de esa selección.</li>
-      </ul>
-    </details>
   </div>
-
-  <AnalysisSummary
-    v-if="ready"
-    :matches="filtered"
-    :odds="odds.data.value ?? []"
-    :min-probability="minProbability"
-    :value-threshold="threshold"
-    @update:min-probability="setMinProbability"
-  />
-
-  <h2 class="mb-2 font-bold">Todos los partidos</h2>
-  <div role="tablist" class="mb-3 grid grid-cols-2 gap-2">
-    <button
-      v-for="m in TABS"
-      :key="m"
-      role="tab"
-      :aria-selected="market === m"
-      class="btn"
-      :class="market === m ? '!border-value !text-value' : ''"
-      @click="selectMarket(m)"
-    >
-      {{ MARKET_LABEL[m] }}
-    </button>
-  </div>
-
-  <div class="mb-2 grid grid-cols-2 gap-2 md:grid-cols-3">
-    <select v-model="day" class="field" aria-label="Fecha">
-      <option value="all">Hoy y mañana</option>
-      <option value="today">Hoy</option>
-      <option value="tomorrow">Mañana</option>
-    </select>
-    <select v-model="league" class="field" aria-label="Liga">
-      <option value="">Todas las ligas</option>
-      <option v-for="l in leagues" :key="l" :value="l">{{ l }}</option>
-    </select>
-    <input v-model="team" type="search" placeholder="Equipo" class="field col-span-2 md:col-span-1" aria-label="Equipo" />
-  </div>
-  <label class="mb-4 flex min-h-touch items-center gap-3 text-xs">
-    <input v-model="showBelowMinimum" type="checkbox" class="h-5 w-5 accent-value" />
-    Mostrar también las selecciones por debajo de {{ Math.round(minProbability * 100) }}% (solo para consultar; no se recomiendan)
-  </label>
 
   <p v-if="matches.isError.value" role="alert" class="text-novalue">
-    No se pudieron cargar los partidos. Si acabas de actualizar la app, ejecuta la migración 07 en Supabase.
+    No se pudieron cargar los partidos. Si acabas de actualizar la app, ejecuta las migraciones pendientes en Supabase.
   </p>
   <p v-else-if="!ready" class="text-ink/60">Cargando…</p>
 
-  <template v-else>
-    <EmptyState
-      v-if="!withPicks.length"
-      :message="`Ningún partido tiene selecciones de ${MARKET_LABEL[market].toLowerCase()} con ${Math.round(cardMinimum * 100)}% o más con estos filtros.`"
+  <div v-else class="space-y-6">
+    <PicksSummary
+      :analysis="analysis"
+      :min-probability="minProbability"
+      :value-threshold="threshold"
+      @update:min-probability="setMinProbability"
     />
-    <div v-else class="space-y-3">
-      <MatchPickCard
-        v-for="m in withPicks"
-        :key="`${m.id}-${market}-${odds.data.value?.length ?? 0}`"
-        :match="m"
-        :market="market"
-        :odds="(odds.data.value ?? []).filter((o) => o.match_id === m.id)"
-        :threshold="threshold"
-        :min-probability="cardMinimum"
-      />
-    </div>
 
-    <details v-if="withoutPicks.length" class="card mt-4 p-4">
-      <summary class="min-h-touch cursor-pointer font-bold">Sin selecciones que cumplan ({{ withoutPicks.length }})</summary>
-      <p class="mb-2 text-xs text-ink/60">
-        Ningún lado de ninguna línea llega al mínimo, o algún equipo no tiene al menos 8 partidos con datos (no se inventa una proyección).
+    <!-- Recomendaciones -->
+    <section aria-labelledby="recs-title" class="space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="recs-title" class="text-lg font-extrabold">Recomendaciones</h2>
+        <div class="inline-flex rounded-lg border border-line bg-sunken p-0.5" role="group" aria-label="Filtrar por mercado">
+          <button
+            v-for="f in FILTERS"
+            :key="f.value"
+            type="button"
+            class="inline-flex min-h-touch items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors"
+            :class="marketFilter === f.value ? 'bg-surface text-brand shadow-sm' : 'text-ink/60 hover:text-ink'"
+            :aria-pressed="marketFilter === f.value"
+            @click="marketFilter = f.value"
+          >
+            {{ f.label }} <span class="num rounded-full bg-primary/10 px-1.5 text-[10px] text-brand">{{ countOf(f.value) }}</span>
+          </button>
+        </div>
+      </div>
+
+      <EmptyState v-if="!recommended.length" message="No se encontraron oportunidades que cumplan los criterios. No se fuerzan recomendaciones.">
+        <p class="max-w-md text-xs text-ink/55">
+          Criterios: {{ Math.round(minProbability * 100) }}% o más de probabilidad, cuota de <Betano /> disponible y valor esperado de
+          {{ (threshold * 100).toFixed(1) }}% o más. Si quieres ver más partidos, revisa
+          <RouterLink :to="{ name: 'matches' }" class="font-semibold text-brand underline">Partidos</RouterLink>.
+        </p>
+      </EmptyState>
+      <div v-else class="grid gap-4 xl:grid-cols-2">
+        <OpportunityCard v-for="s in recommended" :key="s.key" :selection="s" :threshold="threshold" :min-probability="minProbability" />
+      </div>
+    </section>
+
+    <!-- Lo que cumple la probabilidad pero no se recomienda -->
+    <details v-if="analysis.highProbabilityNoValue.length" class="card p-4">
+      <summary class="min-h-touch cursor-pointer font-bold">Probables, pero sin valor ({{ analysis.highProbabilityNoValue.length }})</summary>
+      <p class="mb-3 text-xs text-ink/60">
+        Cumplen {{ Math.round(minProbability * 100) }}% o más, pero <Betano /> paga menos de lo que necesitarían. Acertar a menudo no basta si la cuota no compensa.
       </p>
-      <ul class="space-y-1 text-xs">
-        <li v-for="m in withoutPicks" :key="m.id">
-          <span class="text-ink/60">{{ m.league?.name }} ·</span> {{ m.home?.name }} vs {{ m.away?.name }}
-          <span class="text-ink/50">— {{ noHistory(m) ? 'sin historial suficiente' : 'bajo la probabilidad mínima' }}</span>
+      <ul class="divide-y divide-line text-xs">
+        <li v-for="s in analysis.highProbabilityNoValue" :key="s.key" class="flex flex-wrap items-center justify-between gap-2 py-2">
+          <div class="min-w-0">
+            <p class="font-bold">{{ selectionLabel(s.market, s.side, s.line) }}</p>
+            <p class="truncate text-ink/60">{{ s.match.home?.name }} vs {{ s.match.away?.name }}</p>
+          </div>
+          <p class="num text-right text-ink/70">
+            Modelo {{ pct(s.probability) }} · <Betano /> paga {{ s.betano!.odds.toFixed(2) }}, necesitaría {{ ((1 + threshold) / s.probability).toFixed(2) }}
+            · <span class="font-bold text-novalue">{{ evText(s.ev!) }}</span>
+          </p>
         </li>
       </ul>
     </details>
 
-    <div class="mt-6"><ModelAccuracy /></div>
-  </template>
+    <details v-if="analysis.highProbabilityNoOdds.length" class="card p-4">
+      <summary class="min-h-touch cursor-pointer font-bold">Probables sin cuota de <Betano /> ({{ analysis.highProbabilityNoOdds.length }})</summary>
+      <p class="mb-3 text-xs text-ink/60">No se puede calcular su valor. Si ves la cuota en tu <Betano />, escríbela en la tarjeta del partido (sección Partidos).</p>
+      <ul class="divide-y divide-line text-xs">
+        <li v-for="s in analysis.highProbabilityNoOdds" :key="s.key" class="flex flex-wrap items-center justify-between gap-2 py-2">
+          <div class="min-w-0">
+            <p class="font-bold">{{ selectionLabel(s.market, s.side, s.line) }}</p>
+            <p class="truncate text-ink/60">{{ s.match.home?.name }} vs {{ s.match.away?.name }}</p>
+          </div>
+          <p class="num text-ink/70">Modelo {{ pct(s.probability) }} · cuota justa {{ s.fairOdds.toFixed(2) }}</p>
+        </li>
+      </ul>
+    </details>
+
+    <!-- Confianza en el modelo (el detalle vive en la sección Modelo) -->
+    <RouterLink :to="{ name: 'model' }" class="card group flex flex-wrap items-center gap-4 p-4 transition-colors hover:border-accent">
+      <BeakerIcon class="h-8 w-8 shrink-0 text-brand" aria-hidden="true" />
+      <div class="min-w-0 flex-1">
+        <p class="font-bold">¿Qué tan fiable es este modelo?</p>
+        <p class="text-xs text-ink/65">
+          <template v-for="(t, i) in trust" :key="t.market">
+            <template v-if="t.bucket && t.bucket.n > 0">
+              {{ i ? ' · ' : '' }}{{ MARKET_LABEL[t.market] }}: en el tramo {{ t.bucket.label }} previó {{ t.bucket.predicted }}% y acertó
+              <strong class="num">{{ t.bucket.actual }}%</strong>
+            </template>
+          </template>
+        </p>
+      </div>
+      <span class="inline-flex items-center gap-1 text-sm font-semibold text-brand">
+        Cómo funciona y precisión <ArrowRightIcon class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+      </span>
+    </RouterLink>
+  </div>
 </template>

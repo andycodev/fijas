@@ -102,7 +102,7 @@ async function submit() {
           :key="m"
           type="button"
           class="btn"
-          :class="form.market === m ? '!border-value !text-value' : ''"
+          :class="form.market === m ? '!border-primary !text-brand' : ''"
           @click="setMarket(m)"
         >
           {{ MARKET_LABEL[m] }}
@@ -111,8 +111,8 @@ async function submit() {
 
       <div class="grid grid-cols-[1fr_1fr] gap-2">
         <div class="grid grid-cols-2 gap-2" role="group" aria-label="Selección">
-          <button type="button" class="btn !px-2" :class="form.side === 'over' ? '!border-value !text-value' : ''" @click="form.side = 'over'">Más de</button>
-          <button type="button" class="btn !px-2" :class="form.side === 'under' ? '!border-value !text-value' : ''" @click="form.side = 'under'">Menos de</button>
+          <button type="button" class="btn !px-2" :class="form.side === 'over' ? '!border-primary !text-brand' : ''" @click="form.side = 'over'">Más de</button>
+          <button type="button" class="btn !px-2" :class="form.side === 'under' ? '!border-primary !text-brand' : ''" @click="form.side = 'under'">Menos de</button>
         </div>
         <select v-model.number="form.line" class="field" aria-label="Línea">
           <option v-for="l in LINES[form.market]" :key="l" :value="l">{{ l }}</option>
@@ -141,7 +141,7 @@ async function submit() {
           <label
             v-for="r in RESULTS"
             :key="r.value"
-            class="btn cursor-pointer has-[:checked]:border-value has-[:checked]:text-value"
+            class="btn cursor-pointer has-[:checked]:border-primary has-[:checked]:text-brand"
           >
             <input v-model="form.result" type="radio" :value="r.value" class="sr-only" />
             {{ r.label }}

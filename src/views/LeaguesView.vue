@@ -102,7 +102,7 @@ async function addLeagues(ids: number[]) {
       <p v-if="leagues.isLoading.value" class="text-ink/60">Cargando…</p>
       <ul v-else class="divide-y divide-line">
         <li v-for="l in visible" :key="l.id" class="flex items-center gap-3 py-2">
-          <input v-model="selected" type="checkbox" :value="l.id" class="h-5 w-5 shrink-0 accent-value" :aria-label="`Seleccionar ${l.name}`" />
+          <input v-model="selected" type="checkbox" :value="l.id" class="h-5 w-5 shrink-0 accent-primary" :aria-label="`Seleccionar ${l.name}`" />
           <div class="min-w-0 flex-1">
             <p class="truncate font-semibold">{{ l.name }}</p>
             <p class="truncate text-xs text-ink/60">
@@ -125,7 +125,7 @@ async function addLeagues(ids: number[]) {
             role="switch"
             :aria-checked="activeSet.has(l.id)"
             class="btn !px-3 text-xs"
-            :class="activeSet.has(l.id) ? '!border-value !text-value' : 'text-ink/60'"
+            :class="activeSet.has(l.id) ? '!border-primary !text-brand' : 'text-ink/60'"
             :disabled="activeSet.has(l.id) && lastActive"
             :title="activeSet.has(l.id) && lastActive ? 'Deja al menos una liga activa' : ''"
             @click="setActive([l.id], !activeSet.has(l.id))"
@@ -168,7 +168,7 @@ async function addLeagues(ids: number[]) {
 
         <ul class="divide-y divide-line">
           <li v-for="c in results" :key="c.id" class="flex items-center gap-3 py-2">
-            <input v-model="picked" type="checkbox" :value="c.id" class="h-5 w-5 shrink-0 accent-value" :aria-label="`Elegir ${c.name}`" />
+            <input v-model="picked" type="checkbox" :value="c.id" class="h-5 w-5 shrink-0 accent-primary" :aria-label="`Elegir ${c.name}`" />
             <div class="min-w-0 flex-1">
               <p class="truncate font-semibold">{{ c.name }}</p>
               <p class="truncate text-xs text-ink/60">
