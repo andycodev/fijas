@@ -61,13 +61,15 @@ export interface UpcomingMatch {
   picks: PickLine[];
 }
 
-export interface ManualOdds {
+export interface OddsRow {
   id: number;
   match_id: number;
   market: Market;
   line: number;
   over_odds: number | null;
   under_odds: number | null;
+  origin: 'auto' | 'manual'; // auto = Betano vía proveedor (sin verificar) · manual = escrita por el usuario
+  captured_at: string;
 }
 
 export interface Bet {

@@ -5,7 +5,8 @@ import { ArrowPathIcon } from '@heroicons/vue/24/outline';
 import PageHeader from '../components/PageHeader.vue';
 import EmptyState from '../components/EmptyState.vue';
 import MatchPickCard from '../components/MatchPickCard.vue';
-import { useManualOdds, useRefresh, useUpcomingMatches } from '../composables/usePicks';
+import OpportunitiesPanel from '../components/OpportunitiesPanel.vue';
+import { useOdds, useRefresh, useUpcomingMatches } from '../composables/usePicks';
 import { useProfile } from '../composables/useProfile';
 import { MARKET_LABEL } from '../lib/markets';
 import type { Market } from '../types/db';
@@ -47,7 +48,7 @@ const filtered = computed(() =>
 
 const withPicks = computed(() => filtered.value.filter((m) => m.picks.some((p) => p.market === market.value)));
 const withoutPicks = computed(() => filtered.value.filter((m) => !m.picks.some((p) => p.market === market.value)));
-const odds = useManualOdds(() => (matches.data.value ?? []).map((m) => m.id));
+const odds = useOdds(() => (matches.data.value ?? []).map((m) => m.id));
 const threshold = computed(() => Number(profile.data.value?.value_threshold ?? 0.05));
 const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value && !profile.isLoading.value);
 </script>
@@ -67,7 +68,8 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
     <p v-else-if="refresh.data.value" class="text-xs text-value">
       Listo: {{ refresh.data.value.summary.fixtures.saved }} partidos guardados,
       {{ refresh.data.value.summary.picks.matches }} con proyección. API-Football:
-      {{ refresh.data.value.summary.fixtures.apiRequestsToday }}/90 solicitudes hoy.
+      {{ refresh.data.value.summary.fixtures.apiRequestsToday }}/90 solicitudes hoy. Cuotas de Betano:
+      {{ refresh.data.value.summary.odds.withOdds }} partidos con cuotas, {{ refresh.data.value.summary.odds.without }} sin cuotas disponibles.
     </p>
     <p v-if="refresh.data.value?.summary.fixtures.unmatched.length" class="text-xs font-semibold text-marginal">
       Equipos sin unir: {{ refresh.data.value.summary.fixtures.unmatched.join(', ') }}
@@ -75,10 +77,12 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
 
     <p class="text-xs text-ink/60">
       <strong>Modelo</strong> es la probabilidad que calcula el modelo; <strong>Cuota justa</strong> es 1 / esa
-      probabilidad y no es una cuota de Betano; <strong>Betano</strong> es la cuota que tú escribes. El modelo está bien
+      probabilidad y no es una cuota de Betano; <strong>Betano</strong> es la cuota de esa casa: la del proveedor (sin verificar) o la que tú escribes (confirmada). El modelo está bien
       calibrado pero supera por poco al promedio de la liga: un valor muy alto suele indicar una cuota mal leída.
     </p>
   </div>
+
+  <OpportunitiesPanel v-if="ready" :matches="filtered" :odds="odds.data.value ?? []" :threshold="threshold" />
 
   <div role="tablist" class="mb-3 grid grid-cols-2 gap-2">
     <button

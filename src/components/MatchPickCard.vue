@@ -7,9 +7,10 @@ import {
 import { MARKET_LABEL } from '../lib/markets';
 import { useSaveOdds } from '../composables/usePicks';
 import BetDialog from './BetDialog.vue';
-import type { ManualOdds, Market, PickLine, UpcomingMatch } from '../types/db';
+import { resolveOdds, type ResolvedOdds } from '../lib/opportunities';
+import type { Market, OddsRow, PickLine, UpcomingMatch } from '../types/db';
 
-const props = defineProps<{ match: UpcomingMatch; market: Market; odds: ManualOdds[]; threshold: number }>();
+const props = defineProps<{ match: UpcomingMatch; market: Market; odds: OddsRow[]; threshold: number }>();
 
 const open = ref(false);
 const showAll = ref(false);
@@ -27,7 +28,7 @@ const kickoff = computed(() =>
 // Cuotas de Betano escritas por el usuario, por línea.
 const inputs = reactive<Record<number, { over: number | null; under: number | null }>>({});
 for (const p of picks.value) {
-  const saved = props.odds.find((o) => o.market === props.market && Number(o.line) === Number(p.line));
+  const saved = props.odds.find((o) => o.origin === 'manual' && o.market === props.market && Number(o.line) === Number(p.line));
   inputs[p.line] = { over: saved?.over_odds ?? null, under: saved?.under_odds ?? null };
 }
 
@@ -53,20 +54,28 @@ interface SideView {
   label: string;
   probability: number; // del modelo
   fairOdds: number; // 1 / probabilidad del modelo (NO es una cuota de Betano)
-  betano: number | null;
+  betano: ResolvedOdds | null; // cuota de Betano: la que escribió el usuario o, si no hay, la del proveedor
 }
 
+function betanoFor(line: number, side: 'over' | 'under'): ResolvedOdds | null {
+  const typed = inputs[line]?.[side];
+  if (typed && typed > 1) return { odds: typed, origin: 'manual', capturedAt: '' };
+  return resolveOdds(props.odds.filter((o) => o.origin === 'auto'), props.match.id, props.market, line, side);
+}
+
+const fmtTime = (iso: string) =>
+  new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+
 function sides(p: PickLine): SideView[] {
-  const i = inputs[p.line]!;
   return [
-    { side: 'over', label: `Más de ${p.line}`, probability: p.probability, fairOdds: p.min_odds, betano: i.over && i.over > 1 ? i.over : null },
-    { side: 'under', label: `Menos de ${p.line}`, probability: 1 - p.probability, fairOdds: 1 / (1 - p.probability), betano: i.under && i.under > 1 ? i.under : null },
+    { side: 'over', label: `Más de ${p.line}`, probability: p.probability, fairOdds: p.min_odds, betano: betanoFor(p.line, 'over') },
+    { side: 'under', label: `Menos de ${p.line}`, probability: 1 - p.probability, fairOdds: 1 / (1 - p.probability), betano: betanoFor(p.line, 'under') },
   ];
 }
 
 function evaluate(s: SideView) {
   if (!s.betano) return null;
-  const value = edge(s.probability, s.betano);
+  const value = edge(s.probability, s.betano.odds);
   return { value, signal: signalFor(value, props.threshold) };
 }
 
@@ -107,8 +116,11 @@ const fmtOdds = (o: number) => o.toFixed(2);
 
             <template v-if="s.betano">
               <p class="text-xs text-ink/70">
-                Betano <strong>{{ fmtOdds(s.betano) }}</strong> · implícita {{ pct(impliedProbability(s.betano)) }}
-                <span v-if="s.betano < MIN_ODDS_TARGET" class="text-ink/50">· bajo el mínimo {{ fmtOdds(MIN_ODDS_TARGET) }}</span>
+                Betano <strong>{{ fmtOdds(s.betano.odds) }}</strong> · implícita {{ pct(impliedProbability(s.betano.odds)) }}
+                <span v-if="s.betano.odds < MIN_ODDS_TARGET" class="text-ink/50">· bajo el mínimo {{ fmtOdds(MIN_ODDS_TARGET) }}</span>
+              </p>
+              <p class="text-[11px] text-ink/50">
+                {{ s.betano.origin === 'manual' ? 'Escrita por ti (confirmada)' : `Betano vía proveedor · ${fmtTime(s.betano.capturedAt)} · sin verificar` }}
               </p>
               <div class="flex items-center gap-2 pt-1">
                 <template v-for="ev in [evaluate(s)]" :key="s.side">
@@ -119,7 +131,7 @@ const fmtOdds = (o: number) => o.toFixed(2);
                 <button
                   type="button"
                   class="btn !min-h-9 !px-3 text-xs"
-                  @click="betting = { pickId: p.id, line: p.line, side: s.side, odds: s.betano }"
+                  @click="betting = { pickId: p.id, line: p.line, side: s.side, odds: s.betano.odds }"
                 >
                   Apostar
                 </button>
@@ -134,7 +146,7 @@ const fmtOdds = (o: number) => o.toFixed(2);
             step="0.01"
             min="1.01"
             inputmode="decimal"
-            placeholder="Cuota Betano"
+            placeholder="Tu cuota"
             class="field text-right"
             :aria-label="`Cuota de Betano para ${s.label}`"
             @change="persist(p.line)"

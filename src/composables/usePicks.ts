@@ -2,7 +2,7 @@ import { computed } from 'vue';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { supabase } from '../services/supabase';
 import { useAuthStore } from '../stores/auth';
-import type { ManualOdds, Market, UpcomingMatch } from '../types/db';
+import type { Market, OddsRow, UpcomingMatch } from '../types/db';
 
 const HOURS_AHEAD = 72;
 
@@ -32,20 +32,19 @@ export function useUpcomingMatches() {
   });
 }
 
-export function useManualOdds(matchIds: () => number[]) {
+export function useOdds(matchIds: () => number[]) {
   const auth = useAuthStore();
   return useQuery({
-    queryKey: ['manual-odds', computed(() => auth.user?.id), computed(() => matchIds().join(','))],
+    queryKey: ['odds', computed(() => auth.user?.id), computed(() => matchIds().join(','))],
     enabled: () => !!auth.user && matchIds().length > 0,
-    queryFn: async (): Promise<ManualOdds[]> => {
+    queryFn: async (): Promise<OddsRow[]> => {
       const { data, error } = await supabase
         .from('odds')
-        .select('id, match_id, market, line, over_odds, under_odds')
-        .eq('origin', 'manual')
+        .select('id, match_id, market, line, over_odds, under_odds, origin, captured_at')
         .eq('bookmaker', 'betano')
         .in('match_id', matchIds());
       if (error) throw error;
-      return data as ManualOdds[];
+      return data as OddsRow[];
     },
   });
 }
@@ -78,7 +77,7 @@ export function useSaveOdds() {
       });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['manual-odds'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['odds'] }),
   });
 }
 
@@ -88,6 +87,7 @@ export interface RefreshResult {
   summary: {
     fixtures: { saved: number; withHistory: number; unmatched: string[]; apiRequestsToday: number };
     picks: { matches: number; skipped: number };
+    odds: { matches: number; withOdds: number; without: number; rows: number };
   };
 }
 
@@ -109,6 +109,6 @@ export function useRefresh() {
       if (!res.ok) throw new Error(body.error ?? 'No se pudo actualizar.');
       return body as RefreshResult;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['upcoming-matches'] }),
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: ['upcoming-matches'] }), qc.invalidateQueries({ queryKey: ['odds'] })]),
   });
 }
