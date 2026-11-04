@@ -27,6 +27,7 @@ function kickoff(date: string, time: string): string | null {
 }
 
 const toInt = (v: string): number | null => (/^\d+$/.test(v) ? Number(v) : null);
+const toDec = (v: string): number | null => (/^\d+(\.\d+)?$/.test(v) ? Number(v) : null);
 
 export async function loadFootballData(db: Db, seasons: number[], log: (s: string) => void = console.log) {
 const { data: leagues, error: lerr } = await db.from('leagues').select('id, name, football_data_code').not('football_data_code', 'is', null);
@@ -77,13 +78,16 @@ for (const season of seasons) {
         match_id: id,
         home_corners_total: toInt(r.HC), away_corners_total: toInt(r.AC),
         home_goals_total: toInt(r.FTHG), away_goals_total: toInt(r.FTAG),
+        home_shots: toInt(r.HS), away_shots: toInt(r.AS),
+        home_shots_on_target: toInt(r.HST), away_shots_on_target: toInt(r.AST),
+        home_xg: toDec(r.HxG), away_xg: toDec(r.AxG), // el xG solo viene en la temporada actual
         source: 'football_data',
       };
       const hasData = [row.home_corners_total, row.home_goals_total].some((v) => v !== null);
       return id && hasData ? [row] : [];
     });
-    // ignoreDuplicates: no pisa filas ya completadas con detalle por tiempo desde API-Football.
-    const { error: serr } = await db.from('match_stats').upsert(stats, { onConflict: 'match_id', ignoreDuplicates: true });
+    // Se fusiona con lo existente: así los partidos ya cargados reciben también remates y xG.
+    const { error: serr } = await db.from('match_stats').upsert(stats, { onConflict: 'match_id' });
     if (serr) throw serr;
 
     log(`${league.name} ${season}: ${rows.length} filas CSV, ${matchRows.length} partidos, ${stats.length} con estadísticas (${rows.length - stats.length} sin datos)`);

@@ -15,7 +15,7 @@ export function useUpcomingMatches() {
       const { data, error } = await supabase
         .from('matches')
         .select(
-          'id, kickoff_at, league:leagues(name), home:teams!matches_home_team_id_fkey(name), away:teams!matches_away_team_id_fkey(name), picks(id, line, projection, probability, min_odds, model_version, market)',
+          'id, home_team_id, away_team_id, kickoff_at, league:leagues(name), home:teams!matches_home_team_id_fkey(name), away:teams!matches_away_team_id_fkey(name), picks(id, line, projection, probability, min_odds, model_version, market, home_games_used, away_games_used, latest_game_at)',
         )
         .eq('status', 'scheduled')
         .gte('kickoff_at', from)

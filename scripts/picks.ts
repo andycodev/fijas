@@ -76,6 +76,9 @@ export async function generatePicks(db: Db, log: (s: string) => void = console.l
       awayMean: games.reduce((s, g) => s + g.a, 0) / games.length,
     };
     const r = historicalDispersion(games, cfg.params);
+    // Instante del último partido de cada equipo, para informar qué tan recientes son los datos.
+    const lastGameAt = new Map<number, number>();
+    for (const g of games) { lastGameAt.set(g.home, g.t); lastGameAt.set(g.away, g.t); }
     log(`${cfg.market}: local ${ref.homeMean.toFixed(2)} · visitante ${ref.awayMean.toFixed(2)} · dispersión ${Number.isFinite(r) ? `r=${r.toFixed(1)}` : 'Poisson'}`);
 
     const rows: Record<string, unknown>[] = [];
@@ -86,6 +89,8 @@ export async function generatePicks(db: Db, log: (s: string) => void = console.l
       const proj = projectTotal(hh, ah, ref, cfg.params);
       count++;
       withPicks.add(m.id);
+      // Se informa el dato más antiguo de los dos equipos: es el que limita la frescura del análisis.
+      const latest = Math.min(lastGameAt.get(m.home_team_id) ?? 0, lastGameAt.get(m.away_team_id) ?? 0);
       for (const line of cfg.lines) {
         const p = probOver(line, proj.total, r);
         rows.push({
@@ -95,6 +100,9 @@ export async function generatePicks(db: Db, log: (s: string) => void = console.l
           min_odds: Math.round(minOdds(Math.max(p, 0.0001)) * 100) / 100,
           model_version: cfg.version,
           generated_at: now.toISOString(),
+          home_games_used: Math.min(hh.length, cfg.params.lastN),
+          away_games_used: Math.min(ah.length, cfg.params.lastN),
+          latest_game_at: new Date(latest).toISOString(),
         });
       }
     }

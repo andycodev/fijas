@@ -14,6 +14,7 @@ export interface Profile {
   daily_exposure_pct: number;
   monthly_loss_limit_pct: number;
   losing_streak_alert: number;
+  min_probability: number;
 }
 
 export interface League {
@@ -53,10 +54,15 @@ export interface PickLine {
   probability: number; // probabilidad de "más de" la línea
   min_odds: number; // cuota mínima para "más de"
   model_version: string;
+  home_games_used: number | null;
+  away_games_used: number | null;
+  latest_game_at: string | null;
 }
 
 export interface UpcomingMatch {
   id: number;
+  home_team_id: number;
+  away_team_id: number;
   kickoff_at: string;
   league: { name: string } | null;
   home: { name: string } | null;

@@ -22,6 +22,7 @@ const form = reactive({
   stake_value: 2,
   threshold_pct: 5,
   daily_bet_limit: 3,
+  min_probability_pct: 75,
   daily_exposure_pct: 10,
   monthly_loss_limit_pct: 20,
   losing_streak_alert: 3,
@@ -38,6 +39,7 @@ watch(
     form.stake_value = Number(p.stake_value);
     form.threshold_pct = Math.round(Number(p.value_threshold) * 10000) / 100;
     form.daily_bet_limit = p.daily_bet_limit;
+    form.min_probability_pct = Math.round(Number(p.min_probability ?? 0.75) * 100);
     form.daily_exposure_pct = Number(p.daily_exposure_pct);
     form.monthly_loss_limit_pct = Number(p.monthly_loss_limit_pct);
     form.losing_streak_alert = p.losing_streak_alert;
@@ -57,6 +59,7 @@ async function save() {
     stake_value: form.stake_value,
     value_threshold: form.threshold_pct / 100,
     daily_bet_limit: form.daily_bet_limit,
+    min_probability: form.min_probability_pct / 100,
     daily_exposure_pct: form.daily_exposure_pct,
     monthly_loss_limit_pct: form.monthly_loss_limit_pct,
     losing_streak_alert: form.losing_streak_alert,
@@ -117,6 +120,11 @@ async function save() {
       <label class="block space-y-1">
         <span class="text-xs font-semibold">Tope diario de apuestas</span>
         <input v-model.number="form.daily_bet_limit" type="number" min="0" step="1" required class="field" />
+      </label>
+
+      <label class="block space-y-1">
+        <span class="text-xs font-semibold">Probabilidad mínima para recomendar (%)</span>
+        <input v-model.number="form.min_probability_pct" type="number" min="50" max="99" step="1" required class="field" />
       </label>
 
       <label class="block space-y-1">

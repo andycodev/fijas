@@ -1,0 +1,115 @@
+{
+  "generatedAt": "2026-11-04T15:50:30.547Z",
+  "markets": {
+    "corners_total": {
+      "version": "v1-nb-n10-k20",
+      "evaluatedMatches": 3114,
+      "period": "2024-25 en adelante",
+      "buckets": [
+        {
+          "label": "50–59%",
+          "from": 0.5,
+          "to": 0.6,
+          "n": 5301,
+          "predicted": 55,
+          "actual": 55.3
+        },
+        {
+          "label": "60–69%",
+          "from": 0.6,
+          "to": 0.7,
+          "n": 5676,
+          "predicted": 65.1,
+          "actual": 64.4
+        },
+        {
+          "label": "70–74%",
+          "from": 0.7,
+          "to": 0.75,
+          "n": 3085,
+          "predicted": 72.6,
+          "actual": 72.5
+        },
+        {
+          "label": "75–79%",
+          "from": 0.75,
+          "to": 0.8,
+          "n": 3286,
+          "predicted": 77.5,
+          "actual": 76.5
+        },
+        {
+          "label": "80–84%",
+          "from": 0.8,
+          "to": 0.85,
+          "n": 3197,
+          "predicted": 82.5,
+          "actual": 82.3
+        },
+        {
+          "label": "85% o más",
+          "from": 0.85,
+          "to": 1,
+          "n": 4367,
+          "predicted": 89.2,
+          "actual": 87.7
+        }
+      ]
+    },
+    "goals_total": {
+      "version": "g1-nb-n10-k20",
+      "evaluatedMatches": 3115,
+      "period": "2024-25 en adelante",
+      "buckets": [
+        {
+          "label": "50–59%",
+          "from": 0.5,
+          "to": 0.6,
+          "n": 2830,
+          "predicted": 54.5,
+          "actual": 55.5
+        },
+        {
+          "label": "60–69%",
+          "from": 0.6,
+          "to": 0.7,
+          "n": 2265,
+          "predicted": 65.5,
+          "actual": 64.6
+        },
+        {
+          "label": "70–74%",
+          "from": 0.7,
+          "to": 0.75,
+          "n": 1890,
+          "predicted": 72.6,
+          "actual": 74.3
+        },
+        {
+          "label": "75–79%",
+          "from": 0.75,
+          "to": 0.8,
+          "n": 2030,
+          "predicted": 77.5,
+          "actual": 77.9
+        },
+        {
+          "label": "80–84%",
+          "from": 0.8,
+          "to": 0.85,
+          "n": 1711,
+          "predicted": 82.5,
+          "actual": 82.8
+        },
+        {
+          "label": "85% o más",
+          "from": 0.85,
+          "to": 1,
+          "n": 4849,
+          "predicted": 91.7,
+          "actual": 91.9
+        }
+      ]
+    }
+  }
+}
