@@ -1,7 +1,7 @@
 // Cliente mínimo de API-Football con contador diario y caché en disco.
 // Solo para scripts de servidor: la clave nunca llega a la app.
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 
 const BASE_URL = 'https://v3.football.api-sports.io';
 const DAILY_LIMIT = 90; // tope propio; el plan gratis permite 100
@@ -29,12 +29,19 @@ export interface ApiResult {
   fromCache: boolean;
 }
 
-export async function apiGet(path: string, params: Record<string, string | number | boolean>): Promise<ApiResult> {
+// maxAgeHours: vigencia de la caché (sin valor = para siempre; útil para partidos ya jugados).
+export async function apiGet(
+  path: string,
+  params: Record<string, string | number | boolean>,
+  opts: { maxAgeHours?: number } = {},
+): Promise<ApiResult> {
   const query = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString();
   const url = `${BASE_URL}${path}?${query}`;
   const cacheFile = new URL(`${createHash('sha1').update(url).digest('hex')}.json`, CACHE_DIR);
 
-  if (existsSync(cacheFile)) {
+  const fresh = (): boolean =>
+    opts.maxAgeHours === undefined || Date.now() - statSync(cacheFile).mtimeMs < opts.maxAgeHours * 3600_000;
+  if (existsSync(cacheFile) && fresh()) {
     return { body: JSON.parse(readFileSync(cacheFile, 'utf8')), fromCache: true };
   }
 
