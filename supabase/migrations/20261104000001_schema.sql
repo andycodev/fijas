@@ -1,5 +1,5 @@
 -- Fijas · esquema base (12 tablas)
--- Mercados como texto con check: para sumar goles o ganadas basta ampliar el check.
+-- Solo totales del partido. Mercados como texto con check: para sumar otro mercado (p. ej. ganadas) basta ampliar el check.
 
 -- ───────── Personales ─────────
 create table public.profiles (
@@ -54,25 +54,19 @@ create index matches_away_idx on public.matches (away_team_id, kickoff_at desc);
 
 create table public.match_stats (
   match_id            bigint primary key references public.matches (id) on delete cascade,
-  home_corners_1h     smallint check (home_corners_1h >= 0),
-  away_corners_1h     smallint check (away_corners_1h >= 0),
-  home_corners_2h     smallint check (home_corners_2h >= 0),
-  away_corners_2h     smallint check (away_corners_2h >= 0),
   home_corners_total  smallint check (home_corners_total >= 0),
   away_corners_total  smallint check (away_corners_total >= 0),
+  home_goals_total    smallint check (home_goals_total >= 0),
+  away_goals_total    smallint check (away_goals_total >= 0),
   source              text not null check (source in ('football_data', 'api_football')),
-  has_half_detail     boolean not null default false,
-  updated_at          timestamptz not null default now(),
-  check (not has_half_detail or (
-    home_corners_1h is not null and away_corners_1h is not null
-    and home_corners_2h is not null and away_corners_2h is not null))
+  updated_at          timestamptz not null default now()
 );
 
 create table public.odds (
   id           bigint generated always as identity primary key,
   match_id     bigint not null references public.matches (id) on delete cascade,
   bookmaker    text not null default 'betano',
-  market       text not null check (market in ('corners_1h', 'corners_2h', 'corners_total')),
+  market       text not null check (market in ('corners_total', 'goals_total')),
   line         numeric(4,1) not null,
   over_odds    numeric(6,2) check (over_odds > 1),
   under_odds   numeric(6,2) check (under_odds > 1),
@@ -87,7 +81,7 @@ create index odds_match_idx on public.odds (match_id, market, line);
 create table public.picks (
   id             bigint generated always as identity primary key,
   match_id       bigint not null references public.matches (id) on delete cascade,
-  market         text not null check (market in ('corners_1h', 'corners_2h', 'corners_total')),
+  market         text not null check (market in ('corners_total', 'goals_total')),
   line           numeric(4,1) not null,
   projection     numeric(6,2) not null,
   probability    numeric(5,4) not null check (probability between 0 and 1),
@@ -107,7 +101,7 @@ create table public.bets (
   user_id        uuid not null references auth.users (id) on delete cascade,
   match_id       bigint not null references public.matches (id),
   pick_id        bigint references public.picks (id) on delete set null,
-  market         text not null check (market in ('corners_1h', 'corners_2h', 'corners_total')),
+  market         text not null check (market in ('corners_total', 'goals_total')),
   line           numeric(4,1) not null,
   side           text not null check (side in ('over', 'under')),
   accepted_odds  numeric(6,2) not null check (accepted_odds > 1),

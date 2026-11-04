@@ -81,7 +81,7 @@ for (const season of seasons) {
         match_id: id,
         home_corners_total: toInt(r.HC), away_corners_total: toInt(r.AC),
         home_goals_total: toInt(r.FTHG), away_goals_total: toInt(r.FTAG),
-        source: 'football_data', has_half_detail: false,
+        source: 'football_data',
       };
       const hasData = [row.home_corners_total, row.home_goals_total].some((v) => v !== null);
       return id && hasData ? [row] : [];
