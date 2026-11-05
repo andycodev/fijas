@@ -13,6 +13,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "resolve": "tsx --env-file=.env scripts/results.ts",
+    "auto:resolve": "tsx --env-file=.env scripts/auto.ts resolve",
+    "auto:analyze": "tsx --env-file=.env scripts/auto.ts analyze",
     "test:db": "vitest run --config vitest.db.config.ts"
   },
   "dependencies": {

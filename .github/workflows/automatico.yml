@@ -1,0 +1,52 @@
+# Automatiza lo que hacen los botones de la app, sin necesidad de tener el computador encendido:
+#   · cada hora (minuto 20) revisa los resultados de las recomendaciones pendientes
+#   · dos veces al día hace un análisis completo
+# Horas en UTC (Perú = UTC−5): 13:00 UTC = 08:00 y 18:00 UTC = 13:00 hora de Lima.
+# Las claves se guardan en Settings → Secrets and variables → Actions (nunca en el código):
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, API_FOOTBALL_KEY
+name: Automático
+
+on:
+  schedule:
+    - cron: '0 13,18 * * *'   # análisis
+    - cron: '20 * * * *'      # resultados
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Qué ejecutar'
+        type: choice
+        options: [resolve, analyze]
+        default: resolve
+
+permissions:
+  contents: read
+
+# Nunca dos ejecuciones a la vez: evita gastar API de más y choques de datos.
+concurrency:
+  group: fijas-automatico
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar dependencias
+        run: npx --yes pnpm@12.3.1 install --frozen-lockfile
+      - name: Ejecutar
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          MODE_INPUT: ${{ github.event.inputs.mode }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [ -n "$MODE_INPUT" ]; then MODE="$MODE_INPUT"
+          elif [ "$SCHEDULE" = "0 13,18 * * *" ]; then MODE=analyze
+          else MODE=resolve; fi
+          echo "Modo: $MODE"
+          npx --yes pnpm@12.3.1 exec tsx scripts/auto.ts "$MODE"
