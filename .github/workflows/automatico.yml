@@ -1,14 +1,16 @@
 # Automatiza lo que hacen los botones de la app, sin necesidad de tener el computador encendido:
 #   · cada hora (minuto 20) revisa los resultados de las recomendaciones pendientes
 #   · dos veces al día hace un análisis completo
-# Horas en UTC (Perú = UTC−5): 13:00 UTC = 08:00 y 18:00 UTC = 13:00 hora de Lima.
+# Horas en UTC (Perú = UTC−5): 12:00 UTC = 07:00, 16:00 UTC = 11:00 y 19:00 UTC = 14:00 hora de Lima.
+# Tres análisis para mantener al día las cuotas de Betano: primero el día completo, y dos actualizaciones antes de los partidos
+# de la tarde (los de ~12:45 y ~15:00 hora de Lima).
 # Las claves se guardan en Settings → Secrets and variables → Actions (nunca en el código):
 #   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, API_FOOTBALL_KEY
 name: Automático
 
 on:
   schedule:
-    - cron: '0 13,18 * * *'   # análisis
+    - cron: '0 12,16,19 * * *'   # análisis
     - cron: '20 * * * *'      # resultados
   workflow_dispatch:
     inputs:
@@ -46,7 +48,7 @@ jobs:
           SCHEDULE: ${{ github.event.schedule }}
         run: |
           if [ -n "$MODE_INPUT" ]; then MODE="$MODE_INPUT"
-          elif [ "$SCHEDULE" = "0 13,18 * * *" ]; then MODE=analyze
+          elif [ "$SCHEDULE" = "0 12,16,19 * * *" ]; then MODE=analyze
           else MODE=resolve; fi
           echo "Modo: $MODE"
           npx --yes pnpm@12.3.1 exec tsx scripts/auto.ts "$MODE"

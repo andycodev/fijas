@@ -26,7 +26,7 @@ export async function syncOdds(
     .select('id, api_football_id, kickoff_at, league_id, picks!inner(id, market, probability, model_version, line)')
     .eq('status', 'scheduled')
     .not('api_football_id', 'is', null)
-    .gte('kickoff_at', new Date(now.getTime() - 3 * 3600_000).toISOString())
+    .gt('kickoff_at', now.toISOString()) // un partido que ya empezó no necesita cuotas previas
     .lte('kickoff_at', new Date(now.getTime() + 72 * 3600_000).toISOString())
     .order('kickoff_at'); // los más cercanos primero: si el tope corta, se pierden los más lejanos
   if (opts.activeLeagueIds) query = query.in('league_id', opts.activeLeagueIds);

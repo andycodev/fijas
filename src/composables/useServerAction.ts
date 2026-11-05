@@ -10,7 +10,7 @@ export async function callAction<T>(action: string, payload: Record<string, unkn
   });
   const contentType = res.headers.get('content-type') ?? '';
   if (!contentType.includes('application/json')) {
-    throw new Error('Esta acción solo funciona con el servidor local (pnpm dev).');
+    throw new Error('No hay servidor de análisis disponible. Usa pnpm dev en tu computador o el servicio publicado con servidor (pnpm start).');
   }
   const body = await res.json();
   if (!res.ok) throw new Error(body.error ?? 'No se pudo completar la acción.');

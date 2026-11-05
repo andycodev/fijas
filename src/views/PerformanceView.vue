@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
+import AutomationStatus from '../components/AutomationStatus.vue';
 import ModelPerformance from '../components/ModelPerformance.vue';
 import PageHeader from '../components/PageHeader.vue';
 </script>
@@ -11,5 +12,6 @@ import PageHeader from '../components/PageHeader.vue';
       Cómo funciona el modelo está en <RouterLink :to="{ name: 'model' }" class="font-semibold text-brand underline">Modelo</RouterLink>.
     </template>
   </PageHeader>
+  <AutomationStatus only="resolve" class="mb-4" />
   <ModelPerformance />
 </template>

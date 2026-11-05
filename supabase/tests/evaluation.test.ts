@@ -141,3 +141,24 @@ describe('categoría de la recomendación', () => {
     await expect(db.query(`insert into public.recommendations (user_id, pick_id, match_id, market, line, side, model_probability, odds, ev, category) values ($1, 1, 1, 'goals_total', 2.5, 'over', 0.7, 1.4, 0.0, 'otra')`, [u])).rejects.toThrow();
   });
 });
+
+describe('registro de ejecuciones automáticas', () => {
+  let db: PGlite, a: string, b: string;
+  beforeEach(async () => { db = await freshDb(); a = await addUser(db); b = await addUser(db); });
+
+  it('cada usuario ve las ejecuciones generales y las suyas, no las de otro', async () => {
+    await db.query(`insert into public.automation_runs (kind, source, user_id, status) values ('resolve', 'github', null, 'succeeded'), ('analyze', 'github', $1, 'succeeded'), ('analyze', 'github', $2, 'failed')`, [a, b]);
+    expect(await as(db, a, async () => (await db.query('select * from public.automation_runs')).rows.length)).toBe(2);
+    expect(await as(db, b, async () => (await db.query('select * from public.automation_runs')).rows.length)).toBe(2);
+  });
+  it('la app no puede escribir ni borrar ejecuciones: solo el servidor', async () => {
+    await db.query(`insert into public.automation_runs (kind, source, status) values ('resolve', 'github', 'succeeded')`);
+    await expect(as(db, a, () => db.query(`insert into public.automation_runs (kind, source, status) values ('resolve', 'app', 'succeeded')`))).rejects.toThrow();
+    await expect(as(db, a, () => db.query('delete from public.automation_runs'))).rejects.toThrow();
+    expect(Number((await db.query<{ n: number }>('select count(*) n from public.automation_runs')).rows[0]!.n)).toBe(1);
+  });
+  it('solo admite tipos, orígenes y estados definidos', async () => {
+    await expect(db.query(`insert into public.automation_runs (kind, source, status) values ('otro', 'github', 'succeeded')`)).rejects.toThrow();
+    await expect(db.query(`insert into public.automation_runs (kind, source, status) values ('resolve', 'github', 'raro')`)).rejects.toThrow();
+  });
+});

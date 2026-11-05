@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AnalyzeBar from '../components/AnalyzeBar.vue';
+import AutomationStatus from '../components/AutomationStatus.vue';
 import Betano from '../components/Betano.vue';
 import DayFilterChips from '../components/DayFilterChips.vue';
 import EmptyState from '../components/EmptyState.vue';
@@ -82,6 +83,7 @@ const emptyDayMessage = computed(() =>
   </PageHeader>
 
   <AnalyzeBar />
+  <AutomationStatus class="mb-4" />
 
   <p v-if="matches.isError.value" role="alert" class="text-novalue">
     No se pudieron cargar los partidos. Si acabas de actualizar la app, ejecuta las migraciones pendientes en Supabase.
