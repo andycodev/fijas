@@ -23,7 +23,26 @@
     </script>
   </head>
   <body>
-    <div id="app"></div>
+    <!-- Pantalla de carga mínima (solo CSS): se ve en cuanto llega el HTML y desaparece cuando la app arranca. -->
+    <div id="app">
+      <div class="boot" role="status" aria-live="polite">
+        <div class="boot-ball" aria-hidden="true"></div>
+        <div class="boot-shadow" aria-hidden="true"></div>
+        <p>Cargando Fijas…</p>
+      </div>
+      <style>
+        :root { --boot-bg: #f1f8fb; --boot-ink: #0b1f2a; --boot-accent: #00b4d8; }
+        :root[data-theme='dark'] { --boot-bg: #06131b; --boot-ink: #e2f1f7; }
+        body { margin: 0; background: var(--boot-bg); }
+        .boot { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font-family: Manrope, system-ui, sans-serif; color: var(--boot-ink); }
+        .boot p { margin: 18px 0 0; font-weight: 700; font-size: 15px; }
+        .boot-ball { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--boot-ink); background: radial-gradient(circle at 50% 50%, var(--boot-ink) 0 28%, transparent 30%); animation: boot-bounce 0.9s cubic-bezier(0.3, 0, 0.7, 1) infinite; }
+        .boot-shadow { width: 28px; height: 5px; border-radius: 50%; background: var(--boot-ink); opacity: 0.18; margin-top: 4px; animation: boot-shadow 0.9s cubic-bezier(0.3, 0, 0.7, 1) infinite; }
+        @keyframes boot-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-34px); } }
+        @keyframes boot-shadow { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.55); opacity: 0.08; } }
+        @media (prefers-reduced-motion: reduce) { .boot-ball, .boot-shadow { animation: none; } }
+      </style>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

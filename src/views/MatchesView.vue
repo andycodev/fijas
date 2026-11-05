@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FootballLoader from '../components/FootballLoader.vue';
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
@@ -130,7 +131,7 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
   <p v-if="matches.isError.value" role="alert" class="text-novalue">
     No se pudieron cargar los partidos. Si acabas de actualizar la app, ejecuta las migraciones pendientes en Supabase.
   </p>
-  <p v-else-if="!ready" class="text-ink/60">Cargando…</p>
+  <FootballLoader v-else-if="!ready" size="sm" label="Cargando partidos…" />
 
   <template v-else>
     <EmptyState

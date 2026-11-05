@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FootballLoader from '../components/FootballLoader.vue';
 import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { PlusIcon } from '@heroicons/vue/24/outline';
@@ -108,7 +109,7 @@ const pct = (n: number | null) => (n === null ? '—' : `${n.toFixed(1)}%`);
   </div>
 
   <p v-if="tickets.isError.value" role="alert" class="text-novalue">No se pudieron cargar tus boletos. Si acabas de actualizar la app, ejecuta la migración pendiente en Supabase.</p>
-  <p v-else-if="tickets.isLoading.value" class="text-ink/60">Cargando…</p>
+  <FootballLoader v-else-if="tickets.isLoading.value" size="sm" label="Cargando tus apuestas…" />
 
   <template v-else>
     <h2 class="mb-2 text-lg font-extrabold">Pendientes ({{ open.length }})</h2>

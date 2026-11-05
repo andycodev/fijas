@@ -1,0 +1,36 @@
+# Evita que el servicio gratis de Render se duerma por inactividad (si se duerme, la primera visita tarda ~50 s).
+# Cada 10 minutos hace una petición liviana a /healthz de tu app.
+#
+# Antes de usarlo, crea la variable APP_URL con la dirección de tu app en Render:
+#   GitHub → Settings → Secrets and variables → Actions → pestaña «Variables» → New repository variable
+#   Nombre: APP_URL     Valor: https://tu-app.onrender.com
+# (es una dirección pública, por eso va en Variables y no en Secrets).
+#
+# Horario: de 06:00 a 23:59 hora de Lima (11:00–04:59 UTC). Son ~18 h al día: así queda margen dentro de las 750 horas
+# gratis al mes de Render aunque tengas otro servicio. Para tenerlo despierto las 24 h, cambia la hora por: '*/10 * * * *'.
+# Si Render cambia sus condiciones, basta con borrar este archivo.
+name: Mantener despierto
+
+on:
+  schedule:
+    - cron: '*/10 11-23,0-4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Despertar el servicio
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          if [ -z "$APP_URL" ]; then
+            echo "Falta la variable APP_URL (Settings → Secrets and variables → Actions → Variables)."
+            exit 0
+          fi
+          # Si estaba dormido, la primera petición puede tardar hasta ~1 minuto en responder.
+          curl -fsS --max-time 100 "${APP_URL%/}/healthz" && echo " ← servicio despierto" || echo "El servicio no respondió; se reintentará en 10 minutos."

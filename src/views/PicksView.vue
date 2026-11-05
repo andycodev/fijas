@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FootballLoader from '../components/FootballLoader.vue';
 import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AnalyzeBar from '../components/AnalyzeBar.vue';
@@ -88,7 +89,7 @@ const emptyDayMessage = computed(() =>
   <p v-if="matches.isError.value" role="alert" class="text-novalue">
     No se pudieron cargar los partidos. Si acabas de actualizar la app, ejecuta las migraciones pendientes en Supabase.
   </p>
-  <p v-else-if="!ready" class="text-ink/60">Cargando…</p>
+  <FootballLoader v-else-if="!ready" size="sm" label="Cargando partidos y cuotas…" />
 
   <div v-else class="space-y-6">
     <DayFilterChips :stats="dayStats" />

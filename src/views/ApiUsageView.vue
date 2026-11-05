@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FootballLoader from '../components/FootballLoader.vue';
 import { computed, reactive, watch } from 'vue';
 import { ArrowPathIcon } from '@heroicons/vue/24/outline';
 import { useApiUsage } from '../composables/useApiUsage';
@@ -46,7 +47,7 @@ const localHour = computed(() =>
 </script>
 
 <template>
-  <p v-if="isLoading" class="text-ink/60">Cargando…</p>
+  <FootballLoader v-if="isLoading" size="sm" label="Cargando…" />
 
   <div v-else class="space-y-4">
     <!-- Proveedor y consumo real -->

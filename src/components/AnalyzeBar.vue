@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
+import Betano from './Betano.vue';
+import FootballLoader from './FootballLoader.vue';
 import { ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/solid';
 import { useApiUsage } from '../composables/useApiUsage';
 import { useAnalyze } from '../composables/usePicks';
@@ -22,15 +24,33 @@ const running = computed(() => analyze.isPending.value || status.value.state ===
 const askForce = ref(false);
 const outcome = computed(() => analyze.data.value ?? null);
 
+// Tiempo transcurrido mientras se analiza (un análisis toma de 1 a 3 minutos; si el servidor estaba dormido, hasta un minuto más).
+const now = ref(Date.now());
+const startedLocal = ref<number | null>(null);
+let timer: ReturnType<typeof setInterval> | undefined;
+watch(running, (r) => {
+  clearInterval(timer);
+  if (r) timer = setInterval(() => (now.value = Date.now()), 1000);
+  else startedLocal.value = null;
+}, { immediate: true });
+onBeforeUnmount(() => clearInterval(timer));
+const elapsed = computed(() => {
+  const from = startedLocal.value ?? (status.value.startedAt ? Date.parse(status.value.startedAt) : now.value);
+  return Math.max(0, Math.floor((now.value - from) / 1000));
+});
+const elapsedText = computed(() => (elapsed.value >= 60 ? `${Math.floor(elapsed.value / 60)} min ${elapsed.value % 60} s` : `${elapsed.value} s`));
+
 // Si los datos siguen vigentes no se llama a la API: se pide confirmación para forzar.
 function onAnalyze() {
   if (running.value) return;
   if (status.value.fresh) { askForce.value = true; return; }
   askForce.value = false;
+  startedLocal.value = Date.now();
   analyze.mutate(false);
 }
 function force() {
   askForce.value = false;
+  startedLocal.value = Date.now();
   analyze.mutate(true);
 }
 
@@ -90,6 +110,16 @@ const apiPct = computed(() => (apiLimit.value && apiUsed.value !== null ? usageP
           <RouterLink :to="{ name: 'settings-api' }" class="font-semibold text-brand underline">Detalle</RouterLink>
         </p>
       </div>
+    </div>
+
+    <!-- Espera: el análisis toma de 1 a 3 minutos -->
+    <div v-if="running" class="rounded-lg bg-sunken p-3">
+      <FootballLoader size="sm" :label="`Analizando… ${elapsedText}`">
+        <p class="mt-0.5 text-xs text-ink/65">
+          Descargando resultados, calculando picks y pidiendo las cuotas de <Betano />. Suele tardar de 1 a 3 minutos.
+          <template v-if="elapsed >= 8">Si el servidor estaba dormido, el arranque puede sumar hasta un minuto. Puedes seguir usando la app.</template>
+        </p>
+      </FootballLoader>
     </div>
 
     <!-- Confirmación para forzar -->

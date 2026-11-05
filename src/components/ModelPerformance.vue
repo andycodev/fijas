@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FootballLoader from './FootballLoader.vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import CalibrationChart from './CalibrationChart.vue';
 import CumulativeProfitChart from './CumulativeProfitChart.vue';
@@ -108,7 +109,7 @@ const TABLES = computed<{ title: string; rows: Group[]; label: (k: string) => st
     </div>
 
     <p v-if="recs.isError.value" role="alert" class="text-xs font-semibold text-novalue">No se pudieron cargar las recomendaciones. Si acabas de actualizar la app, ejecuta la migración pendiente en Supabase.</p>
-    <p v-else-if="recs.isLoading.value" class="text-sm text-ink/60">Cargando…</p>
+    <FootballLoader v-else-if="recs.isLoading.value" size="sm" label="Cargando recomendaciones…" />
 
     <template v-else>
       <!-- CATEGORÍA: principales y de estudio se miden por separado -->

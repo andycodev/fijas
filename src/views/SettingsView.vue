@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FootballLoader from '../components/FootballLoader.vue';
 import { reactive, ref, watch } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useLeagues, useProfile, useUpdateProfile } from '../composables/useProfile';
@@ -77,7 +78,7 @@ async function save() {
 
 <template>
 
-  <p v-if="profile.isLoading.value" class="text-ink/60">Cargando…</p>
+  <FootballLoader v-if="profile.isLoading.value" size="sm" label="Cargando ajustes…" />
   <p v-else-if="profile.isError.value" role="alert" class="text-novalue">
     No se pudo cargar tu perfil.
   </p>

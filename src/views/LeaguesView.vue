@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FootballLoader from '../components/FootballLoader.vue';
 import { computed, ref } from 'vue';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { StarIcon } from '@heroicons/vue/24/outline';
@@ -99,7 +100,7 @@ async function addLeagues(ids: number[]) {
         <button class="btn !min-h-9 !px-3 text-xs" @click="selected = []">Limpiar</button>
       </div>
 
-      <p v-if="leagues.isLoading.value" class="text-ink/60">Cargando…</p>
+      <FootballLoader v-if="leagues.isLoading.value" size="sm" label="Cargando ligas…" />
       <ul v-else class="divide-y divide-line">
         <li v-for="l in visible" :key="l.id" class="flex items-center gap-3 py-2">
           <input v-model="selected" type="checkbox" :value="l.id" class="h-5 w-5 shrink-0 accent-primary" :aria-label="`Seleccionar ${l.name}`" />
