@@ -52,6 +52,14 @@ export const ALIASES: Record<string, string> = {
   'freiburg': 'freiburg',
   'vfl wolfsburg': 'wolfsburg',
   'augsburg': 'augsburg',
+  // Clubes de las copas europeas cuyo nombre en la API difiere del de Football-Data.
+  'olympiakos piraeus': 'olympiakos',
+  'aek athens': 'aek',
+  'brugge kv': 'brugge',
+  'braga': 'sp braga',
+  'union st gilloise': 'st gilloise',
+  'heart of midlothian': 'hearts',
+  'nec nijmegen': 'nijmegen',
 };
 
 export interface DbTeam {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  betTotals, capitalStatus, currentLosingStreak, modelReport, monthlySummaries, riskAlerts, stakedToday, type FinBet,
+  betTotals, capitalStatus, currentLosingStreak, monthlySummaries, riskAlerts, stakedToday, type FinBet,
 } from './finance';
 
 const bet = (o: Partial<FinBet>): FinBet => ({
@@ -96,20 +96,5 @@ describe('riskAlerts', () => {
     const ids = riskAlerts({ settings, balance: 185, bets, now: NOW }).map((x) => x.id);
     expect(ids).toContain('streak');
     expect(ids).toContain('below');
-  });
-});
-
-describe('modelReport', () => {
-  it('sin apuestas con probabilidad del modelo no hay reporte', () => {
-    expect(modelReport([bet({})])).toBeNull();
-  });
-  it('compara la probabilidad prevista con la frecuencia real', () => {
-    const r = modelReport([
-      bet({ model_probability: 0.6, result: 'won', profit_loss: 9, accepted_odds: 1.9 }),
-      bet({ model_probability: 0.6, result: 'lost', profit_loss: -10, accepted_odds: 1.9 }),
-    ])!;
-    expect(r).toMatchObject({ n: 2, enough: false, avgModelProbability: 60, winRate: 50, avgOddsUsed: 1.9 });
-    expect(r.avgFairOdds).toBeCloseTo(1.67, 2);
-    expect(r.roiPct).toBeCloseTo(-5, 1);
   });
 });

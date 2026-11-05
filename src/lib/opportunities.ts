@@ -20,6 +20,13 @@ export function resolveOdds(rows: OddsRow[], matchId: number, market: Market, li
   return best ? { odds: Number(best[field]), origin: best.origin, capturedAt: best.captured_at } : null;
 }
 
+// Solo la versión de modelo más reciente de cada mercado, con las líneas en orden.
+export function latestVersionPicks<T extends { market: string; model_version: string; line: number | string }>(picks: T[]): T[] {
+  const latest = new Map<string, string>();
+  for (const pk of picks) if (!latest.has(pk.market) || pk.model_version > latest.get(pk.market)!) latest.set(pk.market, pk.model_version);
+  return picks.filter((pk) => pk.model_version === latest.get(pk.market)).sort((a, b) => Number(a.line) - Number(b.line));
+}
+
 // ───────── Selecciones evaluadas ─────────
 export interface Selection {
   key: string;
@@ -69,6 +76,7 @@ export interface Analysis {
   meetMinimum: Selection[]; // probabilidad ≥ mínimo
   withOdds: Selection[]; // de ésas, con cuota de Betano
   recommended: Selection[]; // de ésas, con valor ≥ umbral (ordenadas por valor)
+  lowValue: Selection[]; // probabilidad y cuota válidas con valor entre 0 y el umbral: se registran aparte, para estudiarlas
   highProbabilityNoValue: Selection[]; // cumplen la probabilidad pero la cuota no tiene valor
   highProbabilityNoOdds: Selection[]; // cumplen la probabilidad pero no hay cuota de Betano
 }
@@ -91,6 +99,7 @@ export function analyze(
     meetMinimum,
     withOdds,
     recommended,
+    lowValue: withOdds.filter((s) => s.ev! >= 0 && s.ev! < opts.valueThreshold).sort((a, b) => b.ev! - a.ev!),
     highProbabilityNoValue: withOdds.filter((s) => s.ev! < opts.valueThreshold).sort((a, b) => b.ev! - a.ev!),
     highProbabilityNoOdds: meetMinimum.filter((s) => s.ev === null),
   };

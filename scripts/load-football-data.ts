@@ -47,7 +47,11 @@ for (const season of seasons) {
   for (const league of leagues) {
     const res = await fetch(`${BASE}/${code}/${league.football_data_code}.csv`);
     if (!res.ok) { log(`${league.name} ${season}: HTTP ${res.status}, omitido`); continue; }
-    const rows = parseCsv(await res.text()).filter((r) => r.HomeTeam && r.AwayTeam);
+    const parsed = parseCsv(await res.text()).filter((r) => r.HomeTeam && r.AwayTeam);
+    // La base guarda un solo partido por local-visitante y temporada. En ligas donde se repiten cruces (p. ej. Escocia)
+    // se conserva el más reciente de cada pareja: el historial de esas ligas queda algo más corto, pero sin duplicados.
+    const rows = [...new Map(parsed.map((r) => [`${r.HomeTeam}|${r.AwayTeam}`, r])).values()];
+    if (rows.length < parsed.length) log(`  ${league.name} ${season}: ${parsed.length - rows.length} cruces repetidos en la misma temporada (se conserva el más reciente de cada uno)`);
 
     // Equipos
     const names = [...new Set(rows.flatMap((r) => [r.HomeTeam, r.AwayTeam]))];

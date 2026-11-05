@@ -1,26 +1,38 @@
 <script setup lang="ts">
+import { watch } from 'vue';
 import { RouterLink, RouterView } from 'vue-router';
 import {
   ArrowRightOnRectangleIcon,
   BanknotesIcon,
   BeakerIcon,
   BoltIcon,
+  ChartBarIcon,
   CalendarDaysIcon,
   Cog6ToothIcon,
   TicketIcon,
 } from '@heroicons/vue/24/outline';
 import BrandMark from './BrandMark.vue';
 import ThemeToggle from './ThemeToggle.vue';
+import BetSlip from './BetSlip.vue';
+import { useAutoResolve } from '../composables/useAutoResolve';
+import { useProfile } from '../composables/useProfile';
+import { setCurrency } from '../lib/format';
 import { useAuthStore } from '../stores/auth';
 
 const auth = useAuthStore();
+useAutoResolve(); // revisa en segundo plano los resultados de las recomendaciones pendientes
 
-// Cinco secciones principales (barra inferior en el celular). «Modelo» es de consulta y vive en la barra lateral y en Picks.
+// La moneda de los importes sale de tu perfil (por defecto, soles).
+const profile = useProfile();
+watch(() => profile.data.value?.currency, (c) => { if (c) setCurrency(c); }, { immediate: true });
+
+// Seis secciones principales (barra inferior en el celular). «Modelo» es de consulta y vive en la barra lateral y en Picks.
 const sections = [
   { name: 'picks', label: 'Picks', icon: BoltIcon },
   { name: 'matches', label: 'Partidos', icon: CalendarDaysIcon },
-  { name: 'bets', label: 'Apuestas', icon: TicketIcon },
+  { name: 'bets', label: 'Mis apuestas', short: 'Apuestas', icon: TicketIcon },
   { name: 'cash', label: 'Caja', icon: BanknotesIcon },
+  { name: 'performance', label: 'Rendimiento', short: 'Resultados', icon: ChartBarIcon },
   { name: 'settings', label: 'Ajustes', icon: Cog6ToothIcon },
 ];
 </script>
@@ -87,7 +99,7 @@ const sections = [
 
     <!-- Navegación inferior (celular) -->
     <nav
-      class="grid shrink-0 grid-cols-5 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      class="grid shrink-0 grid-cols-6 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       aria-label="Secciones"
     >
       <RouterLink
@@ -98,8 +110,10 @@ const sections = [
         active-class="!text-brand"
       >
         <component :is="s.icon" class="h-6 w-6" />
-        {{ s.label }}
+        {{ s.short ?? s.label }}
       </RouterLink>
     </nav>
+
+    <BetSlip />
   </div>
 </template>

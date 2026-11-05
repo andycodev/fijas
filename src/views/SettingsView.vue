@@ -19,6 +19,8 @@ const form = reactive({
   initial_bankroll: 0,
   stake_mode: 'percent' as 'percent' | 'fixed',
   stake_value: 2,
+  min_stake: 10,
+  currency: 'PEN',
   threshold_pct: 5,
   daily_bet_limit: 3,
   min_probability_pct: 75,
@@ -36,6 +38,8 @@ watch(
     form.initial_bankroll = Number(p.initial_bankroll);
     form.stake_mode = p.stake_mode;
     form.stake_value = Number(p.stake_value);
+    form.min_stake = Number(p.min_stake ?? 10);
+    form.currency = p.currency ?? 'PEN';
     form.threshold_pct = Math.round(Number(p.value_threshold) * 10000) / 100;
     form.daily_bet_limit = p.daily_bet_limit;
     form.min_probability_pct = Math.round(Number(p.min_probability ?? 0.75) * 100);
@@ -56,6 +60,8 @@ async function save() {
     initial_bankroll: form.initial_bankroll,
     stake_mode: form.stake_mode,
     stake_value: form.stake_value,
+    min_stake: form.min_stake,
+    currency: form.currency.trim().toUpperCase() || 'PEN',
     value_threshold: form.threshold_pct / 100,
     daily_bet_limit: form.daily_bet_limit,
     min_probability: form.min_probability_pct / 100,
@@ -101,10 +107,25 @@ async function save() {
 
       <label class="block space-y-1">
         <span class="text-xs font-semibold">
-          {{ form.stake_mode === 'percent' ? 'Porcentaje del capital inicial por apuesta (%)' : 'Monto fijo por apuesta' }}
+          {{ form.stake_mode === 'percent' ? 'Porcentaje del capital inicial por boleto (%)' : 'Unidad fija por boleto' }}
         </span>
         <input v-model.number="form.stake_value" type="number" min="0.01" step="0.01" required class="field" />
       </label>
+
+      <div class="grid grid-cols-2 gap-2">
+        <label class="block space-y-1">
+          <span class="text-xs font-semibold">Apuesta mínima por boleto</span>
+          <input v-model.number="form.min_stake" type="number" min="0.01" step="0.01" required class="field" />
+        </label>
+        <label class="block space-y-1">
+          <span class="text-xs font-semibold">Moneda (código)</span>
+          <input v-model="form.currency" type="text" maxlength="3" required class="field uppercase" />
+        </label>
+      </div>
+      <p class="text-xs text-ink/60">
+        Cada boleto usa una unidad, tenga una o varias selecciones; el importe se descuenta una sola vez. No se puede registrar un boleto por debajo
+        de la apuesta mínima ni por encima de tu saldo disponible.
+      </p>
     </section>
 
     <section class="card space-y-3 p-4">

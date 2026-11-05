@@ -2,46 +2,23 @@ import { computed } from 'vue';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { supabase } from '../services/supabase';
 import { useAuthStore } from '../stores/auth';
-import { calculatedBalance } from '../lib/balance';
 import { useProfile } from './useProfile';
-import type { BetMoney, CashMovement, Reconciliation } from '../types/db';
+import { useBankroll, useLedger } from './useTickets';
+import type { Reconciliation } from '../types/db';
 
+// Caja: el saldo sale del libro de movimientos y lo calcula la base (una sola fuente de verdad).
 export function useCash() {
   const auth = useAuthStore();
   const qc = useQueryClient();
-  const uid = () => auth.user?.id;
-  const enabled = () => !!auth.user;
-  const refresh = () => qc.invalidateQueries({ queryKey: ['cash'] });
+  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['cash'] }), qc.invalidateQueries({ queryKey: ['bankroll'] })]);
 
   const profile = useProfile();
-
-  const movements = useQuery({
-    queryKey: ['cash', 'movements', uid],
-    enabled,
-    queryFn: async (): Promise<CashMovement[]> => {
-      const { data, error } = await supabase
-        .from('cash_movements')
-        .select('id, type, amount, occurred_on, note')
-        .order('occurred_on', { ascending: false })
-        .order('id', { ascending: false });
-      if (error) throw error;
-      return data as CashMovement[];
-    },
-  });
-
-  const bets = useQuery({
-    queryKey: ['cash', 'bets', uid],
-    enabled,
-    queryFn: async (): Promise<BetMoney[]> => {
-      const { data, error } = await supabase.from('bets').select('status, stake, profit_loss');
-      if (error) throw error;
-      return data as BetMoney[];
-    },
-  });
+  const bankroll = useBankroll();
+  const movements = useLedger();
 
   const reconciliations = useQuery({
-    queryKey: ['cash', 'reconciliations', uid],
-    enabled,
+    queryKey: ['cash', 'reconciliations', computed(() => auth.user?.id)],
+    enabled: () => !!auth.user,
     queryFn: async (): Promise<Reconciliation[]> => {
       const { data, error } = await supabase
         .from('reconciliations')
@@ -54,17 +31,13 @@ export function useCash() {
     },
   });
 
-  const balance = computed(() =>
-    profile.data.value && movements.data.value && bets.data.value
-      ? calculatedBalance(profile.data.value.initial_bankroll, movements.data.value, bets.data.value)
-      : null,
-  );
+  // Saldo disponible ahora (lo que Betano muestra como saldo: ya sin el importe de los boletos pendientes).
+  const balance = computed(() => bankroll.data.value?.available ?? null);
 
+  // Solo depósitos y retiros: los movimientos de apuestas los crean únicamente las funciones de la base.
   const addMovement = useMutation({
     mutationFn: async (m: { type: 'deposit' | 'withdrawal'; amount: number; occurred_on: string; note: string }) => {
-      const { error } = await supabase
-        .from('cash_movements')
-        .insert({ ...m, note: m.note || null, user_id: auth.user!.id });
+      const { error } = await supabase.from('cash_movements').insert({ ...m, note: m.note || null, user_id: auth.user!.id });
       if (error) throw error;
     },
     onSuccess: refresh,
@@ -91,5 +64,5 @@ export function useCash() {
     onSuccess: refresh,
   });
 
-  return { profile, movements, reconciliations, balance, addMovement, removeMovement, addReconciliation };
+  return { profile, bankroll, movements, reconciliations, balance, addMovement, removeMovement, addReconciliation };
 }

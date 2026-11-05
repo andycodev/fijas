@@ -1,4 +1,3 @@
-import { calculatedBalance } from './balance';
 import { formatMoney } from './format';
 
 // Subconjunto de campos de una apuesta que usan los cálculos de capital.
@@ -194,27 +193,3 @@ export function riskAlerts(args: { settings: RiskSettings; balance: number; bets
   }
   return alerts;
 }
-
-// ───────── Modelo contra resultados ─────────
-// model_probability es la probabilidad que el modelo daba a la selección apostada.
-export function modelReport(bets: FinBet[]) {
-  const rows = bets.filter((b) => isSettled(b) && (b.result === 'won' || b.result === 'lost') && b.model_probability !== null);
-  if (!rows.length) return null;
-  const n = rows.length;
-  const p = (b: FinBet) => num(b.model_probability);
-  const won = (b: FinBet) => (b.result === 'won' ? 1 : 0);
-  const stake = rows.reduce((s, b) => s + num(b.stake), 0);
-  const profit = rows.reduce((s, b) => s + num(b.profit_loss), 0);
-  return {
-    n,
-    enough: n >= 30, // con menos apuestas el azar domina
-    avgModelProbability: round2((rows.reduce((s, b) => s + p(b), 0) / n) * 100),
-    winRate: round2((rows.reduce((s, b) => s + won(b), 0) / n) * 100),
-    avgOddsUsed: round2(rows.reduce((s, b) => s + num(b.accepted_odds), 0) / n),
-    avgFairOdds: round2(rows.reduce((s, b) => s + 1 / p(b), 0) / n),
-    brier: Math.round((rows.reduce((s, b) => s + (p(b) - won(b)) ** 2, 0) / n) * 1000) / 1000,
-    roiPct: stake > 0 ? round2((profit / stake) * 100) : null,
-  };
-}
-
-export { calculatedBalance };

@@ -20,6 +20,9 @@ function restartOnTailwindConfig(): Plugin {
 interface DbModule {
   createServiceClient: () => { auth: { getUser: (token: string) => Promise<{ data: { user: { id: string } | null }; error: unknown }> } };
 }
+interface ResultsModule {
+  resolvePending: (db?: unknown, log?: (line: string) => void) => Promise<{ resolved: number }>;
+}
 interface ActionsModule {
   refreshAll: (log: (line: string) => void, opts: { userId: string; force: boolean }) => Promise<unknown>;
   apiStatus: (db: unknown, userId: string) => Promise<unknown>;
@@ -39,6 +42,24 @@ function localApi(mode: string): Plugin {
         if (env[key]) process.env[key] = env[key];
       }
 
+      // Sin depender de abrir la app: mientras corra `pnpm dev`, revisa los resultados pendientes cada 20 minutos.
+      let resolving = false;
+      const tick = async () => {
+        if (resolving || !env.SUPABASE_SERVICE_ROLE_KEY) return;
+        resolving = true;
+        try {
+          const r = (await server.ssrLoadModule('/scripts/results.ts')) as ResultsModule;
+          await r.resolvePending(undefined, () => {});
+        } catch (e) {
+          server.config.logger.warn(`[resultados] ${e instanceof Error ? e.message : e}`);
+        } finally {
+          resolving = false;
+        }
+      };
+      const first = setTimeout(tick, 30_000);
+      const timer = setInterval(tick, 20 * 60_000);
+      server.httpServer?.on('close', () => { clearTimeout(first); clearInterval(timer); });
+
       server.middlewares.use('/api', async (req, res) => {
         const send = (status: number, body: unknown) => {
           res.statusCode = status;
@@ -48,7 +69,7 @@ function localApi(mode: string): Plugin {
         if (req.method !== 'POST') return send(405, { error: 'Método no permitido' });
 
         const action = (req.url ?? '').split('?')[0]!.replace(/^\/+/, '');
-        if (!['refresh', 'api-status', 'leagues-catalog', 'leagues-add'].includes(action)) {
+        if (!['analyze', 'refresh', 'resolve', 'api-status', 'leagues-catalog', 'leagues-add'].includes(action)) {
           return send(404, { error: 'Acción desconocida' });
         }
 
@@ -76,7 +97,8 @@ function localApi(mode: string): Plugin {
             const log: string[] = [];
             const a = (await server.ssrLoadModule('/scripts/actions.ts')) as ActionsModule;
             let result: unknown;
-            if (action === 'refresh') result = await a.refreshAll((l) => log.push(l), { userId, force: payload.force === true });
+            if (action === 'resolve') result = await ((await server.ssrLoadModule('/scripts/results.ts')) as ResultsModule).resolvePending(db, (l) => log.push(l));
+            else if (action === 'analyze' || action === 'refresh') result = await a.refreshAll((l) => log.push(l), { userId, force: payload.force === true });
             else if (action === 'api-status') result = await a.apiStatus(db, userId);
             else if (action === 'leagues-catalog') result = await a.leaguesCatalog(db, userId);
             else result = await a.addLeague(db, userId, Number(payload.apiId), (l) => log.push(l));

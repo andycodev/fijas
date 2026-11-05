@@ -10,7 +10,7 @@ import { MARKET_LABEL } from '../lib/markets';
 import { confidenceFor, listSelections, type CalibrationBucket, type Confidence, type Selection } from '../lib/opportunities';
 import { useSaveOdds } from '../composables/usePicks';
 import backtest from '../data/backtest.json';
-import BetDialog from './BetDialog.vue';
+import { slipItemFromSelection, slipKey, useBetSlipStore } from '../stores/betslip';
 import WhyPanel from './WhyPanel.vue';
 import EvModal from './EvModal.vue';
 import HighValueNotice from './HighValueNotice.vue';
@@ -30,7 +30,8 @@ const VISIBLE = 6;
 const open = ref(false);
 const showAll = ref(false);
 const save = useSaveOdds();
-const betting = ref<Selection | null>(null);
+const slip = useBetSlipStore();
+const slipKeyOf = (s: Selection) => slipKey(s.matchId, s.market, s.line, s.side);
 const whyOpen = ref<Record<string, boolean>>({});
 const evOpen = ref<Selection | null>(null); // selección cuya explicación del valor esperado está abierta
 
@@ -198,8 +199,15 @@ function persist(line: number) {
               :aria-label="`Tu cuota de Betano para ${s.side === 'over' ? 'más' : 'menos'} de ${s.line}`"
               @change="persist(s.line)"
             />
-            <button v-if="s.betano" type="button" class="btn" :class="signalOf(s) === 'green' ? 'btn-primary' : ''" @click="betting = s">
-              Apostar
+            <button
+              v-if="s.betano"
+              type="button"
+              class="btn"
+              :class="slip.has(slipKeyOf(s)) ? '!border-primary !text-brand' : signalOf(s) === 'green' ? 'btn-primary' : ''"
+              :aria-pressed="slip.has(slipKeyOf(s))"
+              @click="slip.toggle(slipItemFromSelection(s))"
+            >
+              {{ slip.has(slipKeyOf(s)) ? 'En el boleto ✓' : 'Añadir al boleto' }}
             </button>
             <button type="button" class="btn" :aria-expanded="!!whyOpen[s.key]" @click="whyOpen[s.key] = !whyOpen[s.key]">
               ¿Por qué esta probabilidad?
@@ -239,18 +247,5 @@ function persist(line: number) {
     </div>
 
     <EvModal v-if="evOpen" :selection="evOpen" @close="evOpen = null" />
-
-    <BetDialog
-      v-if="betting && betting.betano"
-      :match-id="match.id"
-      :pick-id="betting.pickId"
-      :market="market"
-      :match-label="`${match.home?.name} vs ${match.away?.name}`"
-      :line="betting.line"
-      :side="betting.side"
-      :odds="betting.betano.odds"
-      :model-probability="betting.probability"
-      @close="betting = null"
-    />
   </article>
 </template>

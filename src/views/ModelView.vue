@@ -157,7 +157,16 @@ const USE: Record<Use, { label: string; cls: string; icon: typeof CheckCircleIco
       </p>
     </section>
 
-    <!-- 4. Precisión histórica -->
+    <!-- 4. Rendimiento de las recomendaciones: tiene su propia sección -->
+    <RouterLink :to="{ name: 'performance' }" class="card flex items-center justify-between gap-3 p-4 transition-colors hover:border-accent">
+      <span>
+        <span class="block text-sm font-extrabold">Rendimiento del modelo</span>
+        <span class="block text-xs text-ink/65">Qué recomendó, qué ganó y qué perdió, con gráficos. Ahora tiene su propia sección.</span>
+      </span>
+      <span class="text-xs font-semibold text-brand">Ver rendimiento →</span>
+    </RouterLink>
+
+    <!-- 5. Precisión histórica -->
     <section aria-labelledby="acc-title" class="space-y-3">
       <div>
         <h2 id="acc-title" class="text-lg font-extrabold">Precisión histórica</h2>
@@ -188,7 +197,7 @@ const USE: Record<Use, { label: string; cls: string; icon: typeof CheckCircleIco
           <li>Mide si las <strong>probabilidades son creíbles</strong>. No mide si las cuotas de <Betano /> pagan lo suficiente: eso se comprueba con tus apuestas registradas.</li>
           <li>Cada caso es una línea de un partido; varias líneas del mismo partido están relacionadas, así que no son independientes.</li>
           <li>El modelo no conoce bajas, rotaciones ni lesiones. En partidos europeos usa datos de la liga nacional de cada equipo.</li>
-          <li>Tu rendimiento real aparece en <RouterLink :to="{ name: 'bets' }" class="font-semibold text-brand underline">Apuestas</RouterLink>, en «¿Está funcionando el modelo?».</li>
+          <li>Tu rendimiento real, con tu dinero, está en <RouterLink :to="{ name: 'bets' }" class="font-semibold text-brand underline">Mis apuestas</RouterLink>.</li>
         </ul>
       </div>
     </section>

@@ -15,6 +15,8 @@ export interface Profile {
   monthly_loss_limit_pct: number;
   losing_streak_alert: number;
   min_probability: number;
+  min_stake: number;
+  currency: string;
   favorite_league_ids: number[];
   api_daily_cap: number;
   refresh_interval_minutes: number;
@@ -122,4 +124,125 @@ export interface MatchStatsTotals {
   away_corners_total: number | null;
   home_goals_total: number | null;
   away_goals_total: number | null;
+}
+
+// ───────── Boletos, bankroll, análisis y recomendaciones ─────────
+export type TicketKind = 'single' | 'combo';
+export type TicketStatus = 'open' | 'closed' | 'confirmed' | 'void';
+export type LegResult = 'pending' | 'won' | 'lost' | 'void';
+
+export interface TicketSelection {
+  id: number;
+  position: number;
+  match_id: number;
+  pick_id: number | null;
+  market: Market;
+  line: number;
+  side: 'over' | 'under';
+  odds: number;
+  model_probability: number | null;
+  actual_value: number | null;
+  result: LegResult;
+  match: {
+    kickoff_at: string;
+    status: string;
+    league: { name: string } | null;
+    home: { name: string } | null;
+    away: { name: string } | null;
+    match_stats: MatchStatsTotals | MatchStatsTotals[] | null;
+  } | null;
+}
+
+// Un boleto de Betano: simple (1 selección) o combinado (2 o más). El importe se descuenta una sola vez por boleto.
+export interface Ticket {
+  id: number;
+  kind: TicketKind;
+  bookmaker: string;
+  accepted_odds: number; // cuota total del boleto
+  computed_odds: number | null; // producto de las cuotas individuales
+  odds_edited: boolean;
+  stake: number;
+  status: TicketStatus;
+  result: 'won' | 'lost' | 'void' | null;
+  payout: number | null; // retorno total cobrado
+  profit_loss: number | null;
+  placed_at: string;
+  closed_at: string | null;
+  settled_at: string | null;
+  selections: TicketSelection[];
+}
+
+export interface BankrollSummary {
+  initial: number;
+  available: number; // disponible ahora
+  committed: number; // apostado en boletos pendientes (ya descontado del disponible)
+  equity: number; // disponible + comprometido
+  deposits: number;
+  withdrawals: number;
+  total_staked: number;
+  total_returned: number;
+  gains: number;
+  losses: number;
+  net: number;
+  roi: number | null;
+}
+
+export type LedgerType = 'deposit' | 'withdrawal' | 'stake' | 'payout' | 'refund';
+export interface LedgerEntry {
+  id: number;
+  type: LedgerType;
+  amount: number;
+  occurred_on: string;
+  note: string | null;
+  bet_id: number | null;
+  created_at: string;
+}
+
+export interface AnalysisRun {
+  id: number;
+  status: 'running' | 'succeeded' | 'failed';
+  trigger: 'manual' | 'forced';
+  started_at: string;
+  finished_at: string | null;
+  api_used_before: number | null;
+  api_used_after: number | null;
+  error: string | null;
+}
+
+export interface RecommendationRationale {
+  model_version: string | null;
+  projection: number;
+  fair_odds: number;
+  games_home: number | null;
+  games_away: number | null;
+  latest_game_at: string | null;
+  min_probability: number;
+  value_threshold: number;
+  odds_captured_at: string | null;
+  summary: string;
+  factors: { title: string; detail: string; direction: string }[];
+  unavailable: string[];
+}
+
+export interface RecommendationRow {
+  id: number;
+  pick_id: number;
+  match_id: number;
+  market: Market;
+  line: number;
+  side: 'over' | 'under';
+  model_probability: number;
+  odds: number;
+  ev: number;
+  odds_origin: 'auto' | 'manual' | null;
+  created_at: string;
+  result: 'pending' | 'won' | 'lost' | 'void';
+  actual_value: number | null;
+  settled_at: string | null;
+  category: 'main' | 'low_value'; // principal o de estudio (valor entre 0 y el umbral)
+  league_id: number | null;
+  kickoff_at: string | null; // fecha del partido tal como se recomendó
+  rationale: RecommendationRationale | null; // justificación congelada
+  resolution_note: string | null;
+  match: { kickoff_at: string; status: string; league: { name: string } | null; home: { name: string } | null; away: { name: string } | null } | null;
 }

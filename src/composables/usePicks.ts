@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { supabase } from '../services/supabase';
 import { useAuthStore } from '../stores/auth';
 import { callAction } from './useServerAction';
+import { latestVersionPicks } from '../lib/opportunities';
 import type { Market, OddsRow, UpcomingMatch } from '../types/db';
 
 const HOURS_AHEAD = 72;
@@ -24,11 +25,7 @@ export function useUpcomingMatches() {
         .order('kickoff_at');
       if (error) throw error;
       // Solo la versión de modelo más reciente de cada partido, y las líneas en orden.
-      return (data as unknown as UpcomingMatch[]).map((m) => {
-        const latest = new Map<string, string>();
-        for (const pk of m.picks) if (!latest.has(pk.market) || pk.model_version > latest.get(pk.market)!) latest.set(pk.market, pk.model_version);
-        return { ...m, picks: m.picks.filter((pk) => pk.model_version === latest.get(pk.market)).sort((a, b) => a.line - b.line) };
-      });
+      return (data as unknown as UpcomingMatch[]).map((m) => ({ ...m, picks: latestVersionPicks(m.picks) }));
     },
   });
 }
@@ -82,30 +79,34 @@ export function useSaveOdds() {
   });
 }
 
-export type RefreshSummary =
-  | { skipped: true; nextAllowedAt: string }
+export type AnalyzeSummary =
+  | { skipped: true; reason: 'fresh'; lastRunAt: string; nextAllowedAt: string }
+  | { skipped: true; reason: 'running' }
   | {
       skipped: false;
+      runId: number | null;
       apiStopped: boolean;
       fixtures: { saved: number; withHistory: number; unmatched: string[]; apiRequestsToday: number };
       picks: { matches: number; skipped: number };
       odds: { matches: number; withOdds: number; without: number; rows: number };
+      recommendations: { logged: number; total: number; lowValueLogged: number; lowValueTotal: number };
+      finishedAt: string;
     };
 
-// Pide al servidor local actualizar resultados, partidos, picks y cuotas (respeta la frecuencia y el tope de API).
-export function useRefresh() {
+// Pide al servidor local analizar: resultados, partidos, picks, cuotas y recomendaciones. El servidor decide si los datos
+// siguen vigentes (no gasta API), bloquea ejecuciones simultáneas y registra la ejecución.
+// Con force = true se ignora la vigencia (la app lo pide con confirmación).
+export function useAnalyze() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (force: boolean = false): Promise<RefreshSummary> => {
-      const { summary } = await callAction<RefreshSummary>('refresh', { force });
+    mutationFn: async (force: boolean = false): Promise<AnalyzeSummary> => {
+      const { summary } = await callAction<AnalyzeSummary>('analyze', { force });
       return summary;
     },
-    onSuccess: () =>
-      Promise.all([
-        qc.invalidateQueries({ queryKey: ['upcoming-matches'] }),
-        qc.invalidateQueries({ queryKey: ['odds'] }),
-        qc.invalidateQueries({ queryKey: ['api-usage'] }),
-        qc.invalidateQueries({ queryKey: ['profile'] }),
-      ]),
+    // Termine bien o mal, el servidor dejó registrada la ejecución y pudo cambiar datos.
+    onSettled: () =>
+      Promise.all(
+        ['upcoming-matches', 'odds', 'api-usage', 'profile', 'analysis-runs', 'recommendations'].map((k) => qc.invalidateQueries({ queryKey: [k] })),
+      ),
   });
 }

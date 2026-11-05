@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue';
 import { BeakerIcon, ChartBarIcon, InformationCircleIcon, SparklesIcon } from '@heroicons/vue/24/outline';
 import Betano from './Betano.vue';
-import BetDialog from './BetDialog.vue';
 import EvModal from './EvModal.vue';
 import HighValueNotice from './HighValueNotice.vue';
 import ProbabilityMeter from './ProbabilityMeter.vue';
@@ -14,6 +13,7 @@ import { BAND_CLASS, BAND_LABEL } from '../lib/probability';
 import { HIGH_EV } from '../lib/stake';
 import { signalFor } from '../lib/value';
 import backtest from '../data/backtest.json';
+import { slipItemFromSelection, slipKey, useBetSlipStore } from '../stores/betslip';
 
 // Una oportunidad = una selección con cuota de Betano. Se presenta en tres zonas con función distinta:
 // ESTADÍSTICAS (los datos usados), PREDICCIÓN (lo que calcula el modelo) y RECOMENDACIÓN (si la cuota compensa).
@@ -29,7 +29,8 @@ const confidence = computed(() =>
 
 const whyOpen = ref(false);
 const evOpen = ref(false);
-const betting = ref(false);
+const slip = useBetSlipStore();
+const inSlip = computed(() => slip.has(slipKey(props.selection.matchId, props.selection.market, props.selection.line, props.selection.side)));
 
 const CONF: Record<Confidence, { label: string; dot: string }> = {
   high: { label: 'Confianza alta', dot: 'bg-value' },
@@ -132,7 +133,9 @@ const unit = computed(() => MARKET_LABEL[s.value.market].toLowerCase());
         </p>
         <div class="mt-3 grid grid-cols-2 gap-2">
           <button class="btn" :aria-expanded="whyOpen" @click="whyOpen = !whyOpen">¿Por qué esta probabilidad?</button>
-          <button class="btn btn-primary" @click="betting = true">Apostar</button>
+          <button class="btn" :class="inSlip ? '!border-primary !text-brand' : 'btn-primary'" :aria-pressed="inSlip" @click="slip.toggle(slipItemFromSelection(s))">
+            {{ inSlip ? 'En el boleto ✓' : 'Añadir al boleto' }}
+          </button>
         </div>
       </section>
     </div>
@@ -143,17 +146,5 @@ const unit = computed(() => MARKET_LABEL[s.value.market].toLowerCase());
     <div v-if="whyOpen" class="p-3"><WhyPanel :selection="s" /></div>
 
     <EvModal v-if="evOpen" :selection="s" @close="evOpen = false" />
-    <BetDialog
-      v-if="betting"
-      :match-id="s.matchId"
-      :pick-id="s.pickId"
-      :market="s.market"
-      :match-label="`${s.match.home?.name} vs ${s.match.away?.name}`"
-      :line="s.line"
-      :side="s.side"
-      :odds="odds"
-      :model-probability="s.probability"
-      @close="betting = false"
-    />
   </article>
 </template>

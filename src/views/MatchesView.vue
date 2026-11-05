@@ -6,7 +6,10 @@ import Betano from '../components/Betano.vue';
 import EmptyState from '../components/EmptyState.vue';
 import MatchPickCard from '../components/MatchPickCard.vue';
 import PageHeader from '../components/PageHeader.vue';
+import DayFilterChips from '../components/DayFilterChips.vue';
 import { useMinProbability } from '../composables/useMinProbability';
+import { filterByDay } from '../lib/dayFilter';
+import { useFiltersStore } from '../stores/filters';
 import { useOdds, useUpcomingMatches } from '../composables/usePicks';
 import { useProfile } from '../composables/useProfile';
 import { MARKET_LABEL } from '../lib/markets';
@@ -16,6 +19,7 @@ const route = useRoute();
 const router = useRouter();
 const matches = useUpcomingMatches();
 const profile = useProfile();
+const filters = useFiltersStore(); // el filtro de fecha se comparte con Picks
 const { minProbability } = useMinProbability();
 
 const TABS: Market[] = ['goals_total', 'corners_total'];
@@ -28,7 +32,6 @@ const activeIds = computed(() => profile.data.value?.active_league_ids ?? []);
 const activeMatches = computed(() => (matches.data.value ?? []).filter((m) => !activeIds.value.length || activeIds.value.includes(m.league_id)));
 
 // Filtros
-const day = ref<'all' | 'today' | 'tomorrow'>('all');
 const league = ref('');
 const team = ref('');
 const showBelowMinimum = ref(false);
@@ -41,10 +44,9 @@ const sameDay = (iso: string, offset: number) => {
 };
 const leagues = computed(() => [...new Set(activeMatches.value.map((m) => m.league?.name).filter(Boolean))] as string[]);
 
+// Por la fecha real del partido (hora local), sin partidos que ya empezaron y en orden cronológico.
 const filtered = computed(() =>
-  activeMatches.value.filter((m) => {
-    if (day.value === 'today' && !sameDay(m.kickoff_at, 0)) return false;
-    if (day.value === 'tomorrow' && !sameDay(m.kickoff_at, 1)) return false;
+  filterByDay(activeMatches.value, filters.day).filter((m) => {
     if (league.value && m.league?.name !== league.value) return false;
     const q = team.value.trim().toLowerCase();
     if (q && !`${m.home?.name} ${m.away?.name}`.toLowerCase().includes(q)) return false;
@@ -74,6 +76,13 @@ const groups = computed(() => {
   return [...map.entries()];
 });
 
+// Partidos por opción de fecha (todas las ligas activas; los filtros de liga y equipo se aplican aparte).
+const dayStats = computed(() => ({
+  today: { matches: filterByDay(activeMatches.value, 'today').length },
+  tomorrow: { matches: filterByDay(activeMatches.value, 'tomorrow').length },
+  all: { matches: filterByDay(activeMatches.value, 'all').length },
+}));
+
 const odds = useOdds(() => (matches.data.value ?? []).map((m) => m.id));
 const threshold = computed(() => Number(profile.data.value?.value_threshold ?? 0.05));
 const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value && !profile.isLoading.value);
@@ -99,17 +108,14 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
       </button>
     </div>
 
-    <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
-      <select v-model="day" class="field" aria-label="Fecha">
-        <option value="all">Hoy y mañana</option>
-        <option value="today">Hoy</option>
-        <option value="tomorrow">Mañana</option>
-      </select>
+    <DayFilterChips :stats="dayStats" />
+
+    <div class="grid grid-cols-2 gap-2 md:grid-cols-3">
       <select v-model="league" class="field" aria-label="Liga">
         <option value="">Todas las ligas</option>
         <option v-for="l in leagues" :key="l" :value="l">{{ l }}</option>
       </select>
-      <div class="relative col-span-2">
+      <div class="relative md:col-span-2">
         <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink/40" aria-hidden="true" />
         <input v-model="team" type="search" placeholder="Buscar equipo" class="field !pl-10" aria-label="Equipo" />
       </div>

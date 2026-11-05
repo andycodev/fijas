@@ -4,23 +4,26 @@
 // Uso: npx tsx --env-file=.env scripts/sync-odds.ts
 import { createServiceClient, isMain, type Db } from './db.ts';
 import { apiGet, requestsUsedToday } from './api-football.ts';
+import { latestVersionPicks } from '../src/lib/opportunities.ts';
 
 const BETANO_ID = 32;
 const BETS = [
   { id: 5, market: 'goals_total' }, // "Goals Over/Under" (partido completo)
   { id: 45, market: 'corners_total' }, // "Corners Over Under" (partido completo)
 ] as const;
-const MAX_FIXTURES = 20; // tope de solicitudes de cuotas por ejecución
+const MAX_FIXTURES = 40; // tope de solicitudes de cuotas por ejecución
+const DAILY_RESERVE = 10; // solicitudes que se dejan sin usar en el día (para partidos nuevos y resultados)
+const DEFAULT_CAP = 90;
 
 export async function syncOdds(
   db: Db,
   log: (s: string) => void = console.log,
-  opts: { activeLeagueIds?: number[] } = {},
+  opts: { activeLeagueIds?: number[]; minProbability?: number; dailyCap?: number } = {},
 ) {
   const now = new Date();
   let query = db
     .from('matches')
-    .select('id, api_football_id, kickoff_at, picks!inner(id)')
+    .select('id, api_football_id, kickoff_at, league_id, picks!inner(id, market, probability, model_version, line)')
     .eq('status', 'scheduled')
     .not('api_football_id', 'is', null)
     .gte('kickoff_at', new Date(now.getTime() - 3 * 3600_000).toISOString())
@@ -30,7 +33,21 @@ export async function syncOdds(
   const { data, error } = await query;
   if (error) throw new Error(error.message);
 
-  const matches = [...new Map((data as any[]).map((m) => [m.id, m])).values()].slice(0, MAX_FIXTURES);
+  // Solo se piden cuotas a partidos candidatos: con alguna línea que llegue a tu probabilidad mínima (más de o menos de).
+  // Pedirlas para un partido sin ninguna línea probable gasta una solicitud sin posibilidad de recomendación.
+  const min = opts.minProbability ?? 0;
+  const candidates = [...new Map((data as any[]).map((m) => [m.id, m])).values()].filter((m) =>
+    latestVersionPicks(m.picks).some((p: { probability: number | string }) => Math.max(Number(p.probability), 1 - Number(p.probability)) >= min),
+  );
+  const skipped = new Map((data as any[]).map((m) => [m.id, 1])).size - candidates.length;
+  // Las ligas prioritarias (las que elegiste) primero; dentro de cada grupo, el partido más cercano.
+  const priority = new Set(opts.activeLeagueIds ?? []);
+  candidates.sort((a, b) => Number(priority.has(b.league_id)) - Number(priority.has(a.league_id)) || Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at));
+  // Presupuesto del día: lo que queda del tope, menos una reserva.
+  const budget = Math.max(0, (opts.dailyCap ?? DEFAULT_CAP) - requestsUsedToday() - DAILY_RESERVE);
+  const matches = candidates.slice(0, Math.min(MAX_FIXTURES, budget));
+  if (skipped) log(`Cuotas: ${skipped} partido(s) sin ninguna línea con ${Math.round(min * 100)}% o más: no se piden sus cuotas.`);
+  if (candidates.length > matches.length) log(`Cuotas: ${candidates.length - matches.length} candidato(s) quedan para otro análisis (presupuesto de API del día).`);
   let withOdds = 0, without = 0, rowsSaved = 0, stoppedByLimit = false;
 
   for (const m of matches) {
