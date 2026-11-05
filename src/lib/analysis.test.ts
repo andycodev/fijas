@@ -36,4 +36,12 @@ describe('describeAnalysis', () => {
     const s = describeAnalysis([failed, run({})], 60, NOW);
     expect(s).toMatchObject({ state: 'failed', error: 'Tope diario alcanzado', fresh: true });
   });
+
+  it('un análisis «en curso» de hace más de 10 minutos se da por interrumpido, para poder volver a analizar', () => {
+    const stale = run({ id: 3, status: 'running', finished_at: null, started_at: '2026-11-05T15:00:00' });
+    const s = describeAnalysis([stale, run({ finished_at: '2026-11-05T10:00:00' })], 60, NOW);
+    expect(s.state).toBe('failed');
+    expect(s.error).toContain('interrumpió');
+    expect(s.lastSuccessAt).toBe('2026-11-05T10:00:00');
+  });
 });

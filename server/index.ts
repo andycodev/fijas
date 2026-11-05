@@ -27,6 +27,23 @@ if (!existsSync(join(DIST, 'index.html'))) {
   process.exit(1);
 }
 
+// Si el servidor se reinicia (p. ej. al desplegar una versión nueva) con un análisis en curso, ese análisis se pierde.
+// Antes de cerrar, se marca como interrumpido; así la app no lo muestra «en curso» para siempre.
+async function markInterrupted(signal: string) {
+  try {
+    const { createServiceClient } = (await load('/scripts/db.ts')) as { createServiceClient: () => { from: (t: string) => any } };
+    await createServiceClient()
+      .from('analysis_runs')
+      .update({ status: 'failed', finished_at: new Date().toISOString(), error: `Interrumpida: el servidor se reinició (${signal}). Vuelve a analizar.` })
+      .eq('status', 'running');
+  } catch {
+    /* sin conexión o sin claves: no hay nada más que hacer al cerrar */
+  }
+}
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  process.on(signal, () => void markInterrupted(signal).finally(() => process.exit(0)));
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
 
