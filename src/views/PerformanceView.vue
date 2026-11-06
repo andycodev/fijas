@@ -12,6 +12,6 @@ import PageHeader from '../components/PageHeader.vue';
       Cómo funciona el modelo está en <RouterLink :to="{ name: 'model' }" class="font-semibold text-brand underline">Modelo</RouterLink>.
     </template>
   </PageHeader>
-  <AutomationStatus only="resolve" class="mb-4" />
+  <AutomationStatus only="resolve" class="mb-3" />
   <ModelPerformance />
 </template>

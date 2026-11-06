@@ -94,38 +94,39 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
     <template #subtitle>Todos los partidos de tus ligas activas, con sus cuotas de <Betano /> y su análisis por línea.</template>
   </PageHeader>
 
-  <div class="z-10 -mx-4 mb-4 md:sticky md:top-0 space-y-3 border-b border-line bg-canvas/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
-    <div role="tablist" class="inline-flex rounded-lg border border-line bg-sunken p-0.5">
-      <button
-        v-for="m in TABS"
-        :key="m"
-        role="tab"
-        :aria-selected="market === m"
-        class="inline-flex min-h-touch items-center rounded-md px-5 text-sm font-semibold transition-colors"
-        :class="market === m ? 'bg-surface text-brand shadow-sm' : 'text-ink/60 hover:text-ink'"
-        @click="selectMarket(m)"
-      >
-        {{ MARKET_LABEL[m] }}
-      </button>
+  <!-- Barra de filtros compacta: mercado y día en una fila; liga, equipo y umbral en la siguiente -->
+  <div class="z-10 -mx-3 mb-3 space-y-2 border-b border-line bg-canvas/95 px-3 py-2 backdrop-blur md:sticky md:top-0 md:-mx-6 md:px-6">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div role="tablist" class="inline-flex rounded-lg border border-line bg-sunken p-0.5">
+        <button
+          v-for="m in TABS"
+          :key="m"
+          role="tab"
+          :aria-selected="market === m"
+          class="inline-flex min-h-9 items-center rounded-md px-4 text-xs font-semibold transition-colors"
+          :class="market === m ? 'bg-surface text-brand shadow-sm' : 'text-ink/60 hover:text-ink'"
+          @click="selectMarket(m)"
+        >
+          {{ MARKET_LABEL[m] }}
+        </button>
+      </div>
+      <DayFilterChips :stats="dayStats" bare />
     </div>
 
-    <DayFilterChips :stats="dayStats" />
-
-    <div class="grid grid-cols-2 gap-2 md:grid-cols-3">
-      <select v-model="league" class="field" aria-label="Liga">
+    <div class="flex flex-wrap items-center gap-2">
+      <select v-model="league" class="field !min-h-9 !h-9 !w-auto min-w-40 flex-1 sm:flex-none" aria-label="Liga">
         <option value="">Todas las ligas</option>
         <option v-for="l in leagues" :key="l" :value="l">{{ l }}</option>
       </select>
-      <div class="relative md:col-span-2">
-        <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink/40" aria-hidden="true" />
-        <input v-model="team" type="search" placeholder="Buscar equipo" class="field !pl-10" aria-label="Equipo" />
+      <div class="relative min-w-40 flex-1">
+        <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" aria-hidden="true" />
+        <input v-model="team" type="search" placeholder="Buscar equipo" class="field !min-h-9 !h-9 !pl-9" aria-label="Equipo" />
       </div>
+      <label class="flex min-h-9 items-center gap-2 text-xs text-ink/70">
+        <input v-model="showBelowMinimum" type="checkbox" class="h-4 w-4 accent-primary" />
+        Ver también bajo {{ Math.round(minProbability * 100) }}% <span class="hidden text-ink/45 md:inline">(solo consulta)</span>
+      </label>
     </div>
-
-    <label class="flex min-h-touch items-center gap-3 text-xs text-ink/70">
-      <input v-model="showBelowMinimum" type="checkbox" class="h-5 w-5 accent-primary" />
-      Mostrar también selecciones por debajo de {{ Math.round(minProbability * 100) }}% (solo consulta; no se recomiendan)
-    </label>
   </div>
 
   <p v-if="matches.isError.value" role="alert" class="text-novalue">
@@ -139,10 +140,10 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
       :message="`Ningún partido tiene selecciones de ${MARKET_LABEL[market].toLowerCase()} con ${Math.round(cardMinimum * 100)}% o más con estos filtros.`"
     />
 
-    <div v-else class="space-y-6">
+    <div v-else class="space-y-4">
       <section v-for="[label, list] in groups" :key="label" :aria-label="label">
         <h2 class="eyebrow mb-2 capitalize">{{ label }} · {{ list.length }} partido{{ list.length === 1 ? '' : 's' }}</h2>
-        <div class="grid gap-3 xl:grid-cols-2">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(22rem,1fr))] gap-3">
           <MatchPickCard
             v-for="m in list"
             :key="`${m.id}-${market}-${odds.data.value?.length ?? 0}`"
@@ -156,8 +157,8 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
       </section>
     </div>
 
-    <details v-if="withoutPicks.length" class="card mt-6 p-4">
-      <summary class="min-h-touch cursor-pointer font-bold">Sin selecciones que cumplan ({{ withoutPicks.length }})</summary>
+    <details v-if="withoutPicks.length" class="card mt-4 px-3 py-1">
+      <summary class="flex min-h-10 cursor-pointer items-center font-bold"><span>Sin selecciones que cumplan ({{ withoutPicks.length }})</span></summary>
       <p class="mb-3 text-xs text-ink/60">
         Ningún lado de ninguna línea llega al mínimo, o algún equipo no tiene al menos 8 partidos con datos (no se inventa una proyección).
       </p>

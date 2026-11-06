@@ -32,7 +32,7 @@ export function nextResolve(now: Date = new Date()): Date {
 }
 
 export const KIND_LABEL: Record<AutomationRun['kind'], string> = { analyze: 'Análisis', resolve: 'Revisión de resultados' };
-export const SOURCE_LABEL: Record<AutomationRun['source'], string> = { github: 'Robot de GitHub', local: 'Terminal', app: 'App' };
+export const SOURCE_LABEL: Record<AutomationRun['source'], string> = { github: 'Robot de GitHub', local: 'Terminal', app: 'Servidor (aviso periódico)' };
 
 const n = (v: unknown): number => Number(v ?? 0) || 0;
 const plural = (x: number, one: string, many: string) => `${x} ${x === 1 ? one : many}`;
@@ -83,4 +83,23 @@ export function automationHealth(runs: AutomationRun[], now: Date = new Date()):
     return { ok: false, reason: 'No hay un análisis automático exitoso en las últimas 14 horas.' };
   }
   return { ok: true, reason: null };
+}
+
+// Último horario de análisis que ya pasó (el más reciente ≤ ahora).
+export function latestAnalysisSlot(now: Date = new Date()): Date {
+  for (let d = 0; d >= -1; d--) {
+    for (const h of [...ANALYSIS_UTC_HOURS].reverse()) {
+      const t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + d, h, 0, 0));
+      if (t.getTime() <= now.getTime()) return t;
+    }
+  }
+  return now;
+}
+
+// ¿Toca un análisis? Sí si ya pasó un horario programado y desde entonces no hubo ningún análisis completado.
+// El servidor lo consulta cada pocos minutos: así no importa que el aviso llegue con retraso, y si un horario se pierde se
+// recupera en cuanto llegue el siguiente aviso (una sola vez por horario).
+export function pendingAnalysisSlot(now: Date, lastSuccessIso: string | null): Date | null {
+  const slot = latestAnalysisSlot(now);
+  return !lastSuccessIso || Date.parse(lastSuccessIso) < slot.getTime() ? slot : null;
 }

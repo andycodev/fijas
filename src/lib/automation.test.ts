@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { automationHealth, describeRun, nextAnalysis, nextResolve, whenLabel, type AutomationRun } from './automation';
+import { automationHealth, describeRun, latestAnalysisSlot, nextAnalysis, nextResolve, pendingAnalysisSlot, whenLabel, type AutomationRun } from './automation';
 
 const run = (o: Partial<AutomationRun>): AutomationRun => ({
   id: 1, kind: 'resolve', source: 'github', status: 'succeeded', started_at: '2026-11-05T13:20:00Z', finished_at: '2026-11-05T13:20:20Z', summary: {}, error: null, ...o,
@@ -48,5 +48,24 @@ describe('salud del robot', () => {
   });
   it('sin ejecuciones todavía no se da por caído', () => {
     expect(automationHealth([], now).ok).toBe(true);
+  });
+});
+
+describe('¿toca analizar?', () => {
+  it('el último horario pasado es el más reciente de 12, 16 y 19 UTC (ayer si aún no llegó el primero de hoy)', () => {
+    expect(latestAnalysisSlot(new Date('2026-11-05T17:30:00Z')).toISOString()).toBe('2026-11-05T16:00:00.000Z');
+    expect(latestAnalysisSlot(new Date('2026-11-05T12:00:00Z')).toISOString()).toBe('2026-11-05T12:00:00.000Z');
+    expect(latestAnalysisSlot(new Date('2026-11-05T09:00:00Z')).toISOString()).toBe('2026-11-04T19:00:00.000Z');
+  });
+  it('toca si desde ese horario no hubo análisis completado, y no toca si ya lo hubo', () => {
+    const now = new Date('2026-11-05T16:20:00Z');
+    expect(pendingAnalysisSlot(now, '2026-11-05T12:05:00Z')?.toISOString()).toBe('2026-11-05T16:00:00.000Z');
+    expect(pendingAnalysisSlot(now, '2026-11-05T16:03:00Z')).toBeNull();
+    expect(pendingAnalysisSlot(now, null)?.toISOString()).toBe('2026-11-05T16:00:00.000Z');
+  });
+  it('un horario perdido se recupera una sola vez: tras el análisis de recuperación ya no vuelve a tocar', () => {
+    const late = new Date('2026-11-05T17:40:00Z'); // el aviso llegó con 1 h 40 min de retraso
+    expect(pendingAnalysisSlot(late, '2026-11-05T12:05:00Z')).not.toBeNull();
+    expect(pendingAnalysisSlot(new Date('2026-11-05T17:45:00Z'), '2026-11-05T17:41:00Z')).toBeNull();
   });
 });

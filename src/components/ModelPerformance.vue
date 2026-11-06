@@ -89,15 +89,15 @@ const TABLES = computed<{ title: string; rows: Group[]; label: (k: string) => st
 </script>
 
 <template>
-  <section aria-labelledby="perf-title" class="space-y-6">
+  <section aria-labelledby="perf-title" class="space-y-4">
     <div>
       <h2 id="perf-title" class="text-lg font-extrabold">Resumen y evidencia</h2>
       <p class="text-xs text-ink/65">
         Experimento controlado: cada recomendación se guarda <strong>tal como la generó el modelo</strong> y se resuelve sola contra el resultado real, sin volver
         a calcular nada. Es un laboratorio: el ROI y el EV son teóricos y suponen {{ formatMoney(unit) }} (tu unidad teórica, configurable en Ajustes) por recomendación.
       </p>
-      <details class="mt-2 rounded-lg border border-line bg-surface p-3 text-xs">
-        <summary class="min-h-touch cursor-pointer font-bold">¿Cómo cambia el estado de una recomendación?</summary>
+      <details class="mt-2 rounded-lg border border-line bg-surface px-3 py-1 text-xs">
+        <summary class="flex min-h-10 cursor-pointer items-center font-bold">¿Cómo cambia el estado de una recomendación?</summary>
         <ol class="mt-1 list-decimal space-y-1 pl-5 text-ink/75">
           <li><strong>Pendiente:</strong> se guarda al pulsar Analizar y su partido todavía no empieza.</li>
           <li><strong>En curso:</strong> el partido ya empezó y aún no hay resultado definitivo (en juego, esperando que se registre, o aplazado). Se determina por la hora del partido.</li>
@@ -184,8 +184,8 @@ const TABLES = computed<{ title: string; rows: Group[]; label: (k: string) => st
         <RoiBars v-if="category === 'all' || evByCategory[1]!.total" title="Principales frente a estudio (todas las categorías)" :groups="evByCategory" :label-of="(k) => (k === 'main' ? 'Principales' : 'De estudio (valor 0–5%)')" />
       </div>
 
-      <details v-if="ev.all.resolved" class="card p-4">
-        <summary class="min-h-touch cursor-pointer text-sm font-bold">Ver las cifras detalladas (tablas)</summary>
+      <details v-if="ev.all.resolved" class="card px-4 py-1">
+        <summary class="flex min-h-10 cursor-pointer items-center text-sm font-bold">Ver las cifras detalladas (tablas)</summary>
         <div class="mt-3 grid gap-4 lg:grid-cols-2">
           <div v-for="(t, i) in TABLES" :key="t.title" class="card" :class="i === 2 ? 'lg:col-span-2' : ''">
             <table class="w-full table-auto text-left text-xs">

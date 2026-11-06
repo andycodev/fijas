@@ -80,7 +80,7 @@ const sections = [
 
     <!-- Contenido -->
     <main class="relative min-h-0 flex-1 overflow-y-auto">
-      <div class="mx-auto w-full max-w-6xl px-4 py-5 md:px-8 md:py-8">
+      <div class="mx-auto w-full max-w-[88rem] px-3 py-3 md:px-6 md:py-4">
         <RouterView />
       </div>
     </main>

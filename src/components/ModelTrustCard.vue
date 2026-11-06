@@ -30,7 +30,7 @@ const pills = computed(() =>
   >
     <span class="flex items-center gap-2 text-sm font-bold"><BeakerIcon class="h-5 w-5 text-brand" aria-hidden="true" />Fiabilidad del modelo</span>
     <ul class="flex flex-1 flex-wrap items-center gap-2 text-[11px]">
-      <li v-for="p in pills" :key="p.market" class="rounded-full bg-sunken px-2.5 py-1">
+      <li v-for="p in pills" :key="p.market" class="rounded-lg bg-sunken px-2.5 py-1">
         <span class="font-semibold">{{ MARKET_LABEL[p.market] }}</span>
         <span class="text-ink/60"> · tramo {{ p.label }}: previó </span><span class="num font-bold">{{ p.predicted }}%</span>
         <span class="text-ink/60">, real </span><span class="num font-bold" :class="Math.abs(p.gap) <= 3 ? 'text-value' : 'text-marginal'">{{ p.actual }}%</span>

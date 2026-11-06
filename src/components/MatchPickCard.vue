@@ -10,7 +10,7 @@ import { MARKET_LABEL } from '../lib/markets';
 import { confidenceFor, listSelections, type CalibrationBucket, type Confidence, type Selection } from '../lib/opportunities';
 import { useSaveOdds } from '../composables/usePicks';
 import backtest from '../data/backtest.json';
-import WhyPanel from './WhyPanel.vue';
+import WhyModal from './WhyModal.vue';
 import EvModal from './EvModal.vue';
 import HighValueNotice from './HighValueNotice.vue';
 import { InformationCircleIcon } from '@heroicons/vue/24/outline';
@@ -29,7 +29,7 @@ const VISIBLE = 6;
 const open = ref(false);
 const showAll = ref(false);
 const save = useSaveOdds();
-const whyOpen = ref<Record<string, boolean>>({});
+const whyOpen = ref<Selection | null>(null); // selección cuyo análisis detallado está abierto (en una ventana)
 const evOpen = ref<Selection | null>(null); // selección cuya explicación del valor esperado está abierta
 
 const picks = computed(() => props.match.picks.filter((p) => p.market === props.market));
@@ -97,7 +97,7 @@ function persist(line: number) {
 
 <template>
   <article class="card overflow-hidden">
-    <button class="pitch flex min-h-touch w-full items-center gap-3 bg-gradient-to-br from-tint/60 to-transparent p-4 text-left" :aria-expanded="open" @click="open = !open">
+    <button class="flex min-h-touch w-full items-center gap-3 px-3 py-2.5 text-left" :aria-expanded="open" @click="open = !open">
       <div class="min-w-0 flex-1">
         <p class="eyebrow">{{ match.league?.name }} · {{ kickoff }}</p>
         <p class="truncate text-base font-extrabold">{{ match.home?.name }} <span class="font-semibold text-ink/45">vs</span> {{ match.away?.name }}</p>
@@ -118,7 +118,7 @@ function persist(line: number) {
 
     <div v-if="open" class="border-t border-line">
       <ul class="divide-y divide-line">
-        <li v-for="s in visible" :key="s.key" class="space-y-3 px-4 py-4">
+        <li v-for="s in visible" :key="s.key" class="space-y-2 px-3 py-3">
           <!-- Selección + veredicto -->
           <div class="flex flex-wrap items-start justify-between gap-2">
             <div class="min-w-0">
@@ -196,7 +196,7 @@ function persist(line: number) {
               :aria-label="`Tu cuota de Betano para ${s.side === 'over' ? 'más' : 'menos'} de ${s.line}`"
               @change="persist(s.line)"
             />
-            <button type="button" class="btn" :aria-expanded="!!whyOpen[s.key]" @click="whyOpen[s.key] = !whyOpen[s.key]">
+            <button type="button" class="btn" aria-haspopup="dialog" @click="whyOpen = s">
               ¿Por qué esta probabilidad?
             </button>
           </div>
@@ -209,7 +209,6 @@ function persist(line: number) {
             :origin="s.betano.origin"
             :captured-at="s.betano.capturedAt"
           />
-          <WhyPanel v-if="whyOpen[s.key]" :selection="s" />
         </li>
       </ul>
 
@@ -234,5 +233,6 @@ function persist(line: number) {
     </div>
 
     <EvModal v-if="evOpen" :selection="evOpen" @close="evOpen = null" />
+    <WhyModal v-if="whyOpen" :selection="whyOpen" @close="whyOpen = null" />
   </article>
 </template>

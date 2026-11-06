@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import Betano from './Betano.vue';
+import AutomationStatus from './AutomationStatus.vue';
 import FootballLoader from './FootballLoader.vue';
 import { ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/solid';
 import { useApiUsage } from '../composables/useApiUsage';
@@ -64,8 +65,8 @@ const apiPct = computed(() => (apiLimit.value && apiUsed.value !== null ? usageP
 </script>
 
 <template>
-  <section class="card mb-4 space-y-3 p-4" aria-label="Análisis">
-    <div class="flex flex-wrap items-center gap-3">
+  <section class="card mb-3 space-y-2 p-3" aria-label="Análisis">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
       <button class="btn btn-primary min-w-36" :disabled="running" @click="onAnalyze">
         <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': running }" aria-hidden="true" />
         {{ running ? 'Analizando…' : 'Analizar' }}
@@ -104,8 +105,8 @@ const apiPct = computed(() => (apiLimit.value && apiUsed.value !== null ? usageP
         <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-tint" role="progressbar" :aria-valuenow="apiPct" aria-valuemin="0" aria-valuemax="100" aria-label="Consumo de la API de hoy">
           <div class="h-full rounded-full" :class="apiLevel === 'ok' ? 'bg-primary' : apiLevel === 'critical' || apiLevel === 'exhausted' ? 'bg-novalue' : 'bg-marginal'" :style="{ width: `${apiPct}%` }" />
         </div>
-        <p class="mt-1 text-[11px] text-ink/55">
-          <template v-if="api.reset_observed_at">Último reinicio observado: {{ fmtDay(api.reset_observed_at) }} {{ fmtTime(api.reset_observed_at) }}. </template>
+        <p class="mt-0.5 text-[11px] text-ink/55">
+          <template v-if="api.reset_observed_at">Reinicio observado: {{ fmtDay(api.reset_observed_at) }} {{ fmtTime(api.reset_observed_at) }}. </template>
           <template v-else>La API no informa cuándo se renueva. </template>
           <RouterLink :to="{ name: 'settings-api' }" class="font-semibold text-brand underline">Detalle</RouterLink>
         </p>
@@ -151,5 +152,8 @@ const apiPct = computed(() => (apiLimit.value && apiUsed.value !== null ? usageP
         <p v-if="outcome.fixtures.unmatched.length" class="text-xs font-semibold text-marginal">Equipos sin unir: {{ outcome.fixtures.unmatched.join(', ') }}</p>
       </template>
     </template>
+
+    <!-- Lo que hizo el robot automático -->
+    <AutomationStatus embedded />
   </section>
 </template>

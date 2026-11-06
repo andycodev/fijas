@@ -2,6 +2,7 @@
 // Es lo que hace `pnpm dev`, pero para Render u otro hosting con Node: así el botón «Analizar» funciona publicado.
 //   pnpm build && pnpm start        (el puerto sale de la variable PORT; por defecto 3000)
 // Variables de servidor (en el panel del hosting, nunca en el código): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, API_FOOTBALL_KEY.
+import { timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -25,6 +26,37 @@ const load = (path: string) => import(pathToFileURL(join(ROOT, path)).href);
 if (!existsSync(join(DIST, 'index.html'))) {
   console.error('Falta la carpeta dist: ejecuta primero `pnpm build`.');
   process.exit(1);
+}
+
+// Aviso periódico: un servicio externo (UptimeRobot) llama a /cron/tick?key=… cada pocos minutos. El servidor decide qué toca
+// (revisar resultados siempre; analizar solo si pasó un horario sin análisis) y lo ejecuta en segundo plano, sin hacer esperar
+// a quien llama. Exige la clave CRON_SECRET (variable de entorno); sin ella, la ruta no existe.
+//   /cron/tick?key=…&dry=1  → solo dice qué haría, sin ejecutar nada.
+interface CronModule { tick: (db: unknown, log?: (s: string) => void) => Promise<boolean>; planTick: (db: unknown) => Promise<unknown>; isBusy: () => boolean }
+async function handleCron(url: URL, res: import('node:http').ServerResponse): Promise<void> {
+  const send = (status: number, body: unknown) => {
+    res.statusCode = status;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(body));
+  };
+  const secret = process.env.CRON_SECRET ?? '';
+  if (secret.length < 16) return send(404, { error: 'No encontrado' }); // sin clave configurada, la ruta no existe
+  const given = Buffer.from(url.searchParams.get('key') ?? '');
+  const wanted = Buffer.from(secret);
+  if (given.length !== wanted.length || !timingSafeEqual(given, wanted)) return send(403, { error: 'Clave inválida' });
+
+  try {
+    const { createServiceClient } = (await load('/scripts/db.ts')) as { createServiceClient: () => unknown };
+    const cron = (await load('/scripts/cron.ts')) as CronModule;
+    const db = createServiceClient();
+    const plan = await cron.planTick(db);
+    if (url.searchParams.get('dry') === '1') return send(200, { ok: true, dry: true, plan });
+    if (cron.isBusy()) return send(202, { ok: true, busy: true, plan });
+    void cron.tick(db, (l) => console.log(l)).catch((e) => console.error('[cron]', e instanceof Error ? e.message : e));
+    return send(202, { ok: true, started: true, plan });
+  } catch (e) {
+    return send(500, { error: e instanceof Error ? e.message : 'Error desconocido' });
+  }
 }
 
 // Si el servidor se reinicia (p. ej. al desplegar una versión nueva) con un análisis en curso, ese análisis se pierde.
@@ -55,6 +87,7 @@ createServer(async (req, res) => {
     res.end('ok');
     return;
   }
+  if (url.pathname === '/cron/tick') return handleCron(url, res);
 
   // Archivos estáticos; cualquier otra ruta devuelve index.html (la app usa rutas del lado del cliente).
   let file = normalize(join(DIST, decodeURIComponent(url.pathname)));
