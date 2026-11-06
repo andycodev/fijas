@@ -16,7 +16,6 @@ import { settleRecommendations } from './recommendations.ts';
 const MATCH_MINUTES = 135; // 90' + descanso + descuento: antes de esto un partido no puede haber terminado
 const RECHECK_MINUTES = 45;
 const POSTPONED_RECHECK_MINUTES = 6 * 60; // un partido aplazado se revisa con menos frecuencia
-const BATCH = 20; // máximo de ids por solicitud de /fixtures
 
 export type ApiStatus = 'finished' | 'finished_extra' | 'postponed' | 'cancelled' | 'live' | 'scheduled';
 
@@ -121,50 +120,73 @@ async function resolveOnce(
   if (needApi.length) {
     if (opts.apiCap) configureUsage(db, { cap: opts.apiCap });
     try {
-      for (let i = 0; i < needApi.length; i += BATCH) {
-        const chunk = needApi.slice(i, i + BATCH);
-        const ids = chunk.map((d) => d.match.api_football_id).join('-');
-        const res = await apiGet('/fixtures', { ids }, { maxAgeHours: 0.4 });
+      // El plan gratis NO permite pedir varios partidos por id. Se usa lo que sí permite:
+      //  · una solicitud por DÍA (/fixtures?date=) trae todos los partidos de ese día: un solo pedido cubre a todos los pendientes de ese día;
+      //  · los partidos de hace más de un día (fuera de lo que admite «date») se piden de uno en uno (/fixtures?id=).
+      const fixtures = new Map<number, any>();
+      const apiOk = (res: { body: any }, what: string): boolean => {
+        const errors = res.body.errors && Object.keys(res.body.errors).length ? res.body.errors : null;
+        if (errors) log(`La API rechazó ${what}: ${JSON.stringify(errors)}`);
+        return !errors;
+      };
+      const todayMs = Date.parse(now.toISOString().slice(0, 10));
+      const dates = new Set<string>();
+      const single: any[] = [];
+      for (const d of needApi) {
+        const day = String(d.match.kickoff_at).slice(0, 10);
+        const diff = (Date.parse(day) - todayMs) / 86_400_000;
+        if (diff >= -1 && diff <= 1) dates.add(day);
+        else single.push(d);
+      }
+      for (const day of dates) {
+        const res = await apiGet('/fixtures', { date: day }, { maxAgeHours: 0.4 });
         summary.apiRequests += res.fromCache ? 0 : 1;
-        if (res.body.errors && Object.keys(res.body.errors).length) throw new Error(`API: ${JSON.stringify(res.body.errors)}`);
+        if (apiOk(res, `los partidos del ${day}`)) for (const f of res.body.response as any[]) fixtures.set(f.fixture.id, f);
+      }
+      for (const d of single) {
+        const id = d.match.api_football_id as number;
+        if (fixtures.has(id)) continue;
+        const res = await apiGet('/fixtures', { id }, { maxAgeHours: 0.4 });
+        summary.apiRequests += res.fromCache ? 0 : 1;
+        if (apiOk(res, `el partido ${id}`)) for (const f of res.body.response as any[]) fixtures.set(f.fixture.id, f);
+      }
 
-        for (const f of res.body.response as any[]) {
-          const entry = chunk.find((d) => d.match.api_football_id === f.fixture.id);
-          if (!entry) continue;
-          const matchId = entry.match.id as number;
-          const st = apiStatusOf(f.fixture.status.short);
+      for (const entry of needApi) {
+        const f = fixtures.get(entry.match.api_football_id as number);
+        if (!f) continue;
+        const matchId = entry.match.id as number;
+        const st = apiStatusOf(f.fixture.status.short);
 
-          if (st === 'postponed' || st === 'cancelled') {
-            must(await db.from('matches').update({ status: st }).eq('id', matchId));
-            continue; // cancelado → la base lo anula; aplazado → sigue pendiente hasta que se juegue o pasen 7 días
-          }
-          if (st !== 'finished' && st !== 'finished_extra') continue; // en curso o sin empezar: pendiente
+        if (st === 'postponed' || st === 'cancelled') {
+          must(await db.from('matches').update({ status: st }).eq('id', matchId));
+          continue; // cancelado → la base lo anula; aplazado → sigue pendiente hasta que se juegue o pasen 7 días
+        }
+        if (st !== 'finished' && st !== 'finished_extra') continue; // en curso o sin empezar: pendiente
 
-          must(await db.from('matches').update({ status: 'finished' }).eq('id', matchId));
-          // Goles de los 90 minutos (score.fulltime no incluye tiempo extra ni penales).
-          const gh = f.score?.fulltime?.home, ga = f.score?.fulltime?.away;
-          if (gh !== null && gh !== undefined && ga !== null && ga !== undefined) {
-            const upd = must(await db.from('match_stats').update({ home_goals_total: gh, away_goals_total: ga }).eq('match_id', matchId).select('match_id')) as any[];
-            if (!upd.length) must(await db.from('match_stats').insert({ match_id: matchId, home_goals_total: gh, away_goals_total: ga, source: 'api_football' }));
-          }
-          if (!entry.markets.has('corners_total')) continue;
+        must(await db.from('matches').update({ status: 'finished' }).eq('id', matchId));
+        // Goles de los 90 minutos (score.fulltime no incluye tiempo extra ni penales).
+        const gh = f.score?.fulltime?.home, ga = f.score?.fulltime?.away;
+        if (gh !== null && gh !== undefined && ga !== null && ga !== undefined) {
+          const upd = must(await db.from('match_stats').update({ home_goals_total: gh, away_goals_total: ga }).eq('match_id', matchId).select('match_id')) as any[];
+          if (!upd.length) must(await db.from('match_stats').insert({ match_id: matchId, home_goals_total: gh, away_goals_total: ga, source: 'api_football' }));
+        }
+        if (!entry.markets.has('corners_total')) continue;
 
-          if (st === 'finished_extra') {
-            // Los córners que da la API incluyen el tiempo extra y no se pueden separar de los 90': se anula, no se adivina.
-            await db.rpc('void_recommendations', { p_match_id: matchId, p_market: 'corners_total', p_note: 'Tiempo extra: los córners de los 90 minutos no se pueden separar' });
-            continue;
-          }
-          const stats = await apiGet('/fixtures/statistics', { fixture: f.fixture.id });
-          summary.apiRequests += stats.fromCache ? 0 : 1;
-          const corners = (stats.body.response as any[]).map(
-            (t) => (t.statistics as any[]).find((x) => x.type === 'Corner Kicks')?.value as number | null | undefined,
-          );
-          if (corners.length === 2 && corners.every((c) => typeof c === 'number')) {
-            const upd = must(await db.from('match_stats').update({ home_corners_total: corners[0], away_corners_total: corners[1] }).eq('match_id', matchId).select('match_id')) as any[];
-            if (!upd.length) must(await db.from('match_stats').insert({ match_id: matchId, home_corners_total: corners[0], away_corners_total: corners[1], source: 'api_football' }));
-          } else {
-            log(`Sin córners publicados todavía para el partido ${matchId}; se reintentará.`);
-          }
+        if (st === 'finished_extra') {
+          // Los córners que da la API incluyen el tiempo extra y no se pueden separar de los 90': se anula, no se adivina.
+          await db.rpc('void_recommendations', { p_match_id: matchId, p_market: 'corners_total', p_note: 'Tiempo extra: los córners de los 90 minutos no se pueden separar' });
+          continue;
+        }
+        const stats = await apiGet('/fixtures/statistics', { fixture: f.fixture.id });
+        summary.apiRequests += stats.fromCache ? 0 : 1;
+        const corners = (stats.body.response as any[]).map(
+          (t) => (t.statistics as any[]).find((x) => x.type === 'Corner Kicks')?.value as number | null | undefined,
+        );
+        if (corners.length === 2 && corners.every((c) => typeof c === 'number')) {
+          const upd = must(await db.from('match_stats').update({ home_corners_total: corners[0], away_corners_total: corners[1] }).eq('match_id', matchId).select('match_id')) as any[];
+          if (!upd.length) must(await db.from('match_stats').insert({ match_id: matchId, home_corners_total: corners[0], away_corners_total: corners[1], source: 'api_football' }));
+        } else {
+          log(`Sin córners publicados todavía para el partido ${matchId}; se reintentará.`);
         }
       }
     } catch (e) {
