@@ -128,7 +128,7 @@ const emptyDayMessage = computed(() =>
             <RouterLink :to="{ name: 'matches' }" class="font-semibold text-brand underline">Partidos</RouterLink>.
           </p>
         </EmptyState>
-        <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(21rem,1fr))] gap-3">
+        <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(21rem,1fr))] items-start gap-3">
           <OpportunityCard v-for="s in recommended" :key="s.key" :selection="s" :threshold="threshold" :min-probability="minProbability" />
         </div>
       </section>

@@ -96,7 +96,7 @@ function persist(line: number) {
 </script>
 
 <template>
-  <article class="card overflow-hidden">
+  <article class="card overflow-hidden" :class="{ 'col-span-full': open }">
     <button class="flex min-h-touch w-full items-center gap-3 px-3 py-2.5 text-left" :aria-expanded="open" @click="open = !open">
       <div class="min-w-0 flex-1">
         <p class="eyebrow">{{ match.league?.name }} · {{ kickoff }}</p>
@@ -117,8 +117,8 @@ function persist(line: number) {
     </button>
 
     <div v-if="open" class="border-t border-line">
-      <ul class="divide-y divide-line">
-        <li v-for="s in visible" :key="s.key" class="space-y-2 px-3 py-3">
+      <ul class="grid divide-y divide-line lg:grid-cols-2 lg:gap-px lg:divide-y-0 lg:bg-line xl:grid-cols-3 [&>li:last-child:nth-child(odd)]:lg:col-span-2 xl:[&>li:last-child:nth-child(odd)]:col-span-1">
+        <li v-for="s in visible" :key="s.key" class="space-y-2 bg-surface px-3 py-3">
           <!-- Selección + veredicto -->
           <div class="flex flex-wrap items-start justify-between gap-2">
             <div class="min-w-0">

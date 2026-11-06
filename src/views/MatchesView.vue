@@ -143,7 +143,7 @@ const ready = computed(() => !matches.isLoading.value && !odds.isLoading.value &
     <div v-else class="space-y-4">
       <section v-for="[label, list] in groups" :key="label" :aria-label="label">
         <h2 class="eyebrow mb-2 capitalize">{{ label }} · {{ list.length }} partido{{ list.length === 1 ? '' : 's' }}</h2>
-        <div class="grid grid-cols-[repeat(auto-fill,minmax(22rem,1fr))] gap-3">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(22rem,1fr))] items-start gap-3">
           <MatchPickCard
             v-for="m in list"
             :key="`${m.id}-${market}-${odds.data.value?.length ?? 0}`"
