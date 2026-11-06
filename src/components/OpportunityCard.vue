@@ -13,7 +13,6 @@ import { BAND_CLASS, BAND_LABEL } from '../lib/probability';
 import { HIGH_EV } from '../lib/stake';
 import { signalFor } from '../lib/value';
 import backtest from '../data/backtest.json';
-import { slipItemFromSelection, slipKey, useBetSlipStore } from '../stores/betslip';
 
 // Una oportunidad = una selección con cuota de Betano. Se presenta en tres zonas con función distinta:
 // ESTADÍSTICAS (los datos usados), PREDICCIÓN (lo que calcula el modelo) y RECOMENDACIÓN (si la cuota compensa).
@@ -29,8 +28,6 @@ const confidence = computed(() =>
 
 const whyOpen = ref(false);
 const evOpen = ref(false);
-const slip = useBetSlipStore();
-const inSlip = computed(() => slip.has(slipKey(props.selection.matchId, props.selection.market, props.selection.line, props.selection.side)));
 
 const CONF: Record<Confidence, { label: string; dot: string }> = {
   high: { label: 'Confianza alta', dot: 'bg-value' },
@@ -131,11 +128,8 @@ const unit = computed(() => MARKET_LABEL[s.value.market].toLowerCase());
           <template v-if="s.betano!.origin === 'manual'">Cuota escrita por ti (confirmada)</template>
           <template v-else><Betano /> vía proveedor · {{ when(s.betano!.capturedAt) }} · <strong>sin verificar</strong></template>
         </p>
-        <div class="mt-3 grid grid-cols-2 gap-2">
-          <button class="btn" :aria-expanded="whyOpen" @click="whyOpen = !whyOpen">¿Por qué esta probabilidad?</button>
-          <button class="btn" :class="inSlip ? '!border-primary !text-brand' : 'btn-primary'" :aria-pressed="inSlip" @click="slip.toggle(slipItemFromSelection(s))">
-            {{ inSlip ? 'En el boleto ✓' : 'Añadir al boleto' }}
-          </button>
+        <div class="mt-3">
+          <button class="btn w-full" :aria-expanded="whyOpen" @click="whyOpen = !whyOpen">¿Por qué esta probabilidad?</button>
         </div>
       </section>
     </div>

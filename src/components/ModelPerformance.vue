@@ -7,16 +7,16 @@ import RecommendationItem from './RecommendationItem.vue';
 import RoiBars from './RoiBars.vue';
 import StreakDots from './StreakDots.vue';
 import { useProfile } from '../composables/useProfile';
-import { useRecommendations } from '../composables/useTickets';
+import { useRecommendations } from '../composables/useAnalysis';
 import { cumulativeSeries, evaluate, MIN_FOR_CONCLUSION, phaseOf, type EvalRow, type Group } from '../lib/evaluation';
 import { formatMoney } from '../lib/format';
 import type { RecommendationRow } from '../types/db';
 
 // Rendimiento DEL MODELO: cada recomendación que generó «Analizar», congelada tal como se generó y evaluada contra el resultado real.
-// Es un experimento teórico (una unidad fija por recomendación): no registra apuestas ni toca el bankroll.
+// Es un experimento teórico (una unidad fija por recomendación): no hay dinero real en juego.
 const recs = useRecommendations();
 const profile = useProfile();
-const unit = computed(() => (profile.data.value?.stake_mode === 'fixed' ? Number(profile.data.value.stake_value) : 10) || 10);
+const unit = computed(() => Number(profile.data.value?.unit_value ?? 10) || 10);
 
 // La fase (pendiente / en curso) depende de la hora: se recalcula cada minuto sin recargar nada.
 const now = ref(Date.now());
@@ -94,7 +94,7 @@ const TABLES = computed<{ title: string; rows: Group[]; label: (k: string) => st
       <h2 id="perf-title" class="text-lg font-extrabold">Resumen y evidencia</h2>
       <p class="text-xs text-ink/65">
         Experimento controlado: cada recomendación se guarda <strong>tal como la generó el modelo</strong> y se resuelve sola contra el resultado real, sin volver
-        a calcular nada. No registra apuestas ni toca tu bankroll: el ROI y el EV suponen {{ formatMoney(unit) }} (tu unidad) por recomendación.
+        a calcular nada. Es un laboratorio: el ROI y el EV son teóricos y suponen {{ formatMoney(unit) }} (tu unidad teórica, configurable en Ajustes) por recomendación.
       </p>
       <details class="mt-2 rounded-lg border border-line bg-surface p-3 text-xs">
         <summary class="min-h-touch cursor-pointer font-bold">¿Cómo cambia el estado de una recomendación?</summary>

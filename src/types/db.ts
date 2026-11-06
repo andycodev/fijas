@@ -3,19 +3,11 @@ export type Market = 'corners_total' | 'goals_total';
 
 export interface Profile {
   user_id: string;
-  initial_bankroll: number;
-  stake_mode: 'percent' | 'fixed';
-  stake_value: number;
   value_threshold: number; // fracción: 0.05 = 5 %
-  daily_bet_limit: number;
-  pause_level: number;
   active_league_ids: number[];
   active_markets: Market[];
-  daily_exposure_pct: number;
-  monthly_loss_limit_pct: number;
-  losing_streak_alert: number;
   min_probability: number;
-  min_stake: number;
+  unit_value: number; // unidad teórica con la que el laboratorio calcula ROI y EV en dinero (no hay dinero real en juego)
   currency: string;
   favorite_league_ids: number[];
   api_daily_cap: number;
@@ -32,22 +24,6 @@ export interface League {
   api_football_id: number | null;
   football_data_code: string | null;
   kind: 'league' | 'cup' | null;
-}
-
-export interface CashMovement {
-  id: number;
-  type: 'deposit' | 'withdrawal';
-  amount: number;
-  occurred_on: string;
-  note: string | null;
-}
-
-export interface Reconciliation {
-  id: number;
-  betano_balance: number;
-  calculated_balance: number;
-  difference: number;
-  checked_on: string;
 }
 
 export interface BetMoney {
@@ -126,78 +102,7 @@ export interface MatchStatsTotals {
   away_goals_total: number | null;
 }
 
-// ───────── Boletos, bankroll, análisis y recomendaciones ─────────
-export type TicketKind = 'single' | 'combo';
-export type TicketStatus = 'open' | 'closed' | 'confirmed' | 'void';
-export type LegResult = 'pending' | 'won' | 'lost' | 'void';
-
-export interface TicketSelection {
-  id: number;
-  position: number;
-  match_id: number;
-  pick_id: number | null;
-  market: Market;
-  line: number;
-  side: 'over' | 'under';
-  odds: number;
-  model_probability: number | null;
-  actual_value: number | null;
-  result: LegResult;
-  match: {
-    kickoff_at: string;
-    status: string;
-    league: { name: string } | null;
-    home: { name: string } | null;
-    away: { name: string } | null;
-    match_stats: MatchStatsTotals | MatchStatsTotals[] | null;
-  } | null;
-}
-
-// Un boleto de Betano: simple (1 selección) o combinado (2 o más). El importe se descuenta una sola vez por boleto.
-export interface Ticket {
-  id: number;
-  kind: TicketKind;
-  bookmaker: string;
-  accepted_odds: number; // cuota total del boleto
-  computed_odds: number | null; // producto de las cuotas individuales
-  odds_edited: boolean;
-  stake: number;
-  status: TicketStatus;
-  result: 'won' | 'lost' | 'void' | null;
-  payout: number | null; // retorno total cobrado
-  profit_loss: number | null;
-  placed_at: string;
-  closed_at: string | null;
-  settled_at: string | null;
-  selections: TicketSelection[];
-}
-
-export interface BankrollSummary {
-  initial: number;
-  available: number; // disponible ahora
-  committed: number; // apostado en boletos pendientes (ya descontado del disponible)
-  equity: number; // disponible + comprometido
-  deposits: number;
-  withdrawals: number;
-  total_staked: number;
-  total_returned: number;
-  gains: number;
-  losses: number;
-  net: number;
-  roi: number | null;
-}
-
-export type LedgerType = 'deposit' | 'withdrawal' | 'stake' | 'payout' | 'refund';
-export interface LedgerEntry {
-  id: number;
-  type: LedgerType;
-  amount: number;
-  occurred_on: string;
-  note: string | null;
-  bet_id: number | null;
-  created_at: string;
-}
-
+// ───────── Análisis y recomendaciones ─────────
 export interface AnalysisRun {
   id: number;
   status: 'running' | 'succeeded' | 'failed';

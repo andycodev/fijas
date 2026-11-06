@@ -194,10 +194,10 @@ const USE: Record<Use, { label: string; cls: string; icon: typeof CheckCircleIco
       <div class="card space-y-1 p-4 text-xs text-ink/75">
         <p class="font-bold text-ink">Cómo leerla, con honestidad</p>
         <ul class="list-disc space-y-1 pl-4">
-          <li>Mide si las <strong>probabilidades son creíbles</strong>. No mide si las cuotas de <Betano /> pagan lo suficiente: eso se comprueba con tus apuestas registradas.</li>
+          <li>Mide si las <strong>probabilidades son creíbles</strong>. No mide si las cuotas de <Betano /> pagan lo suficiente: eso se comprueba con las recomendaciones registradas, en Rendimiento.</li>
           <li>Cada caso es una línea de un partido; varias líneas del mismo partido están relacionadas, así que no son independientes.</li>
           <li>El modelo no conoce bajas, rotaciones ni lesiones. En partidos europeos usa datos de la liga nacional de cada equipo.</li>
-          <li>Tu rendimiento real, con tu dinero, está en <RouterLink :to="{ name: 'bets' }" class="font-semibold text-brand underline">Mis apuestas</RouterLink>.</li>
+          <li>Cómo le va al modelo con sus recomendaciones reales, acumuladas partido a partido, está en <RouterLink :to="{ name: 'performance' }" class="font-semibold text-brand underline">Rendimiento</RouterLink>.</li>
         </ul>
       </div>
     </section>

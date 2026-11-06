@@ -3,7 +3,7 @@ import { RouterLink, RouterView } from 'vue-router';
 import PageHeader from '../components/PageHeader.vue';
 
 const tabs = [
-  { name: 'settings', label: 'Perfil y riesgo' },
+  { name: 'settings', label: 'Criterios del modelo' },
   { name: 'settings-leagues', label: 'Ligas' },
   { name: 'settings-api', label: 'Consumo de API' },
 ];

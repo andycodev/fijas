@@ -19,8 +19,9 @@ const routes: RouteRecordRaw[] = [
       { path: 'partidos', name: 'matches', component: () => import('../views/MatchesView.vue') },
       { path: 'rendimiento', name: 'performance', component: () => import('../views/PerformanceView.vue') },
       { path: 'modelo', name: 'model', component: () => import('../views/ModelView.vue') },
-      { path: 'apuestas', name: 'bets', component: () => import('../views/BetsView.vue') },
-      { path: 'caja', name: 'cash', component: () => import('../views/CashView.vue') },
+      // La app ya no gestiona apuestas ni dinero: los enlaces antiguos llevan a Picks.
+      { path: 'apuestas', redirect: { name: 'picks' } },
+      { path: 'caja', redirect: { name: 'picks' } },
       {
         path: 'ajustes',
         component: () => import('../views/SettingsLayout.vue'),

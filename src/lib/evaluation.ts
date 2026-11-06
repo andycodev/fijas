@@ -1,5 +1,5 @@
 // Evaluación del modelo con sus recomendaciones congeladas. Todo es teórico: una unidad fija por recomendación,
-// sin apuestas reales ni bankroll. Función pura: recibe las filas y devuelve cifras.
+// sin dinero real. Función pura: recibe las filas y devuelve cifras.
 
 export type RecResult = 'pending' | 'won' | 'lost' | 'void';
 

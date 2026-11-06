@@ -7,7 +7,7 @@ import { ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroic
 import { useApiUsage } from '../composables/useApiUsage';
 import { useAnalyze } from '../composables/usePicks';
 import { useProfile } from '../composables/useProfile';
-import { useAnalysisRuns } from '../composables/useTickets';
+import { useAnalysisRuns } from '../composables/useAnalysis';
 import { describeAnalysis } from '../lib/analysis';
 import { usageLevel, usagePercent } from '../lib/apiUsage';
 

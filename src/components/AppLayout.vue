@@ -3,17 +3,14 @@ import { watch } from 'vue';
 import { RouterLink, RouterView } from 'vue-router';
 import {
   ArrowRightOnRectangleIcon,
-  BanknotesIcon,
   BeakerIcon,
   BoltIcon,
   ChartBarIcon,
   CalendarDaysIcon,
   Cog6ToothIcon,
-  TicketIcon,
 } from '@heroicons/vue/24/outline';
 import BrandMark from './BrandMark.vue';
 import ThemeToggle from './ThemeToggle.vue';
-import BetSlip from './BetSlip.vue';
 import { useAutoResolve } from '../composables/useAutoResolve';
 import { useProfile } from '../composables/useProfile';
 import { setCurrency } from '../lib/format';
@@ -26,13 +23,13 @@ useAutoResolve(); // revisa en segundo plano los resultados de las recomendacion
 const profile = useProfile();
 watch(() => profile.data.value?.currency, (c) => { if (c) setCurrency(c); }, { immediate: true });
 
-// Seis secciones principales (barra inferior en el celular). «Modelo» es de consulta y vive en la barra lateral y en Picks.
+// Secciones principales (también la barra inferior en el celular). La app es un laboratorio del modelo:
+// analiza, registra recomendaciones y mide su rendimiento; no administra apuestas ni dinero.
 const sections = [
   { name: 'picks', label: 'Picks', icon: BoltIcon },
   { name: 'matches', label: 'Partidos', icon: CalendarDaysIcon },
-  { name: 'bets', label: 'Mis apuestas', short: 'Apuestas', icon: TicketIcon },
-  { name: 'cash', label: 'Caja', icon: BanknotesIcon },
-  { name: 'performance', label: 'Rendimiento', short: 'Resultados', icon: ChartBarIcon },
+  { name: 'performance', label: 'Rendimiento', icon: ChartBarIcon },
+  { name: 'model', label: 'Modelo', icon: BeakerIcon },
   { name: 'settings', label: 'Ajustes', icon: Cog6ToothIcon },
 ];
 </script>
@@ -55,7 +52,7 @@ const sections = [
           <BrandMark :size="34" />
           <div>
             <p class="text-xl font-extrabold leading-none tracking-tight">Fijas</p>
-            <p class="mt-1 text-[11px] text-ink/55">Goles y córners, con números</p>
+            <p class="mt-1 text-[11px] text-ink/55">Laboratorio de goles y córners</p>
           </div>
         </div>
       </div>
@@ -72,15 +69,6 @@ const sections = [
           {{ s.label }}
         </RouterLink>
 
-        <p class="eyebrow mt-4 px-3">Referencia</p>
-        <RouterLink
-          :to="{ name: 'model' }"
-          class="flex min-h-touch items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 font-semibold text-ink/65 transition-colors hover:bg-sunken hover:text-ink"
-          active-class="!border-accent !bg-primary/10 !text-brand"
-        >
-          <BeakerIcon class="h-5 w-5" />
-          Modelo
-        </RouterLink>
       </nav>
 
       <div class="space-y-3 border-t border-line p-3">
@@ -99,7 +87,7 @@ const sections = [
 
     <!-- Navegación inferior (celular) -->
     <nav
-      class="grid shrink-0 grid-cols-6 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      class="grid shrink-0 grid-cols-5 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       aria-label="Secciones"
     >
       <RouterLink
@@ -110,10 +98,9 @@ const sections = [
         active-class="!text-brand"
       >
         <component :is="s.icon" class="h-6 w-6" />
-        {{ s.short ?? s.label }}
+        {{ s.label }}
       </RouterLink>
     </nav>
 
-    <BetSlip />
   </div>
 </template>

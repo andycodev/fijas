@@ -15,38 +15,27 @@ const MARKETS: { value: Market; label: string }[] = [
   { value: 'goals_total', label: 'Goles totales' },
 ];
 
-// El umbral se muestra en % y se guarda como fracción (5 % = 0.05).
+// El umbral y la probabilidad mínima se muestran en % y se guardan como fracción (5 % = 0.05).
 const form = reactive({
-  initial_bankroll: 0,
-  stake_mode: 'percent' as 'percent' | 'fixed',
-  stake_value: 2,
-  min_stake: 10,
-  currency: 'PEN',
   threshold_pct: 5,
-  daily_bet_limit: 3,
   min_probability_pct: 75,
-  daily_exposure_pct: 10,
-  monthly_loss_limit_pct: 20,
-  losing_streak_alert: 3,
+  unit_value: 10,
+  currency: 'PEN',
   active_league_ids: [] as number[],
   active_markets: [] as Market[],
 });
+// La unidad teórica llega con la última migración; mientras no exista, no se envía.
+const hasUnit = ref(false);
 
 watch(
   () => profile.data.value,
   (p) => {
     if (!p) return;
-    form.initial_bankroll = Number(p.initial_bankroll);
-    form.stake_mode = p.stake_mode;
-    form.stake_value = Number(p.stake_value);
-    form.min_stake = Number(p.min_stake ?? 10);
-    form.currency = p.currency ?? 'PEN';
     form.threshold_pct = Math.round(Number(p.value_threshold) * 10000) / 100;
-    form.daily_bet_limit = p.daily_bet_limit;
     form.min_probability_pct = Math.round(Number(p.min_probability ?? 0.75) * 100);
-    form.daily_exposure_pct = Number(p.daily_exposure_pct);
-    form.monthly_loss_limit_pct = Number(p.monthly_loss_limit_pct);
-    form.losing_streak_alert = p.losing_streak_alert;
+    hasUnit.value = p.unit_value !== undefined && p.unit_value !== null;
+    form.unit_value = Number(p.unit_value ?? 10);
+    form.currency = p.currency ?? 'PEN';
     form.active_league_ids = [...p.active_league_ids];
     form.active_markets = [...p.active_markets];
   },
@@ -58,17 +47,10 @@ const saved = ref(false);
 async function save() {
   saved.value = false;
   await update.mutateAsync({
-    initial_bankroll: form.initial_bankroll,
-    stake_mode: form.stake_mode,
-    stake_value: form.stake_value,
-    min_stake: form.min_stake,
-    currency: form.currency.trim().toUpperCase() || 'PEN',
     value_threshold: form.threshold_pct / 100,
-    daily_bet_limit: form.daily_bet_limit,
     min_probability: form.min_probability_pct / 100,
-    daily_exposure_pct: form.daily_exposure_pct,
-    monthly_loss_limit_pct: form.monthly_loss_limit_pct,
-    losing_streak_alert: form.losing_streak_alert,
+    ...(hasUnit.value ? { unit_value: form.unit_value } : {}),
+    currency: form.currency.trim().toUpperCase() || 'PEN',
     active_league_ids: form.active_league_ids,
     active_markets: form.active_markets,
   });
@@ -77,7 +59,6 @@ async function save() {
 </script>
 
 <template>
-
   <FootballLoader v-if="profile.isLoading.value" size="sm" label="Cargando ajustes…" />
   <p v-else-if="profile.isError.value" role="alert" class="text-novalue">
     No se pudo cargar tu perfil.
@@ -85,86 +66,42 @@ async function save() {
 
   <form v-else class="space-y-4" @submit.prevent="save">
     <section class="card space-y-3 p-4">
-      <h2 class="font-bold">Capital y montos</h2>
+      <h2 class="font-bold">Criterios de recomendación</h2>
+      <p class="text-xs text-ink/60">
+        Definen qué selecciones registra el modelo como recomendaciones. Cambiarlos no altera lo ya registrado: cada recomendación conserva los
+        criterios con los que se generó.
+      </p>
 
       <label class="block space-y-1">
-        <span class="text-xs font-semibold">Capital inicial (capital protegido)</span>
-        <input v-model.number="form.initial_bankroll" type="number" min="0" step="0.01" required class="field" />
+        <span class="text-xs font-semibold">Probabilidad mínima del modelo (%)</span>
+        <input v-model.number="form.min_probability_pct" type="number" min="50" max="99" step="1" required class="field" />
       </label>
-
-      <fieldset class="space-y-1">
-        <legend class="text-xs font-semibold">Modo de monto</legend>
-        <div class="grid grid-cols-2 gap-2">
-          <label class="btn cursor-pointer has-[:checked]:border-primary has-[:checked]:text-brand">
-            <input v-model="form.stake_mode" type="radio" value="percent" class="sr-only" />
-            Porcentaje
-          </label>
-          <label class="btn cursor-pointer has-[:checked]:border-primary has-[:checked]:text-brand">
-            <input v-model="form.stake_mode" type="radio" value="fixed" class="sr-only" />
-            Fijo
-          </label>
-        </div>
-      </fieldset>
 
       <label class="block space-y-1">
-        <span class="text-xs font-semibold">
-          {{ form.stake_mode === 'percent' ? 'Porcentaje del capital inicial por boleto (%)' : 'Unidad fija por boleto' }}
-        </span>
-        <input v-model.number="form.stake_value" type="number" min="0.01" step="0.01" required class="field" />
+        <span class="text-xs font-semibold">Valor esperado mínimo para ser recomendación principal (%)</span>
+        <input v-model.number="form.threshold_pct" type="number" step="0.1" required class="field" />
+        <span class="block text-[11px] text-ink/55">Entre 0% y este valor se registran como «de estudio», aparte de las principales.</span>
       </label>
+    </section>
 
+    <section class="card space-y-3 p-4">
+      <h2 class="font-bold">Unidad teórica</h2>
+      <p class="text-xs text-ink/60">
+        La app no maneja tu dinero ni registra apuestas: tú apuestas directamente en Betano. Para medir el modelo se supone una unidad fija por
+        recomendación y con ella se calculan el ROI y el valor esperado acumulado en dinero. Es solo una escala de medida.
+      </p>
       <div class="grid grid-cols-2 gap-2">
         <label class="block space-y-1">
-          <span class="text-xs font-semibold">Apuesta mínima por boleto</span>
-          <input v-model.number="form.min_stake" type="number" min="0.01" step="0.01" required class="field" />
+          <span class="text-xs font-semibold">Unidad por recomendación</span>
+          <input v-model.number="form.unit_value" type="number" min="0.01" step="0.01" required class="field" :disabled="!hasUnit" />
         </label>
         <label class="block space-y-1">
           <span class="text-xs font-semibold">Moneda (código)</span>
           <input v-model="form.currency" type="text" maxlength="3" required class="field uppercase" />
         </label>
       </div>
-      <p class="text-xs text-ink/60">
-        Cada boleto usa una unidad, tenga una o varias selecciones; el importe se descuenta una sola vez. No se puede registrar un boleto por debajo
-        de la apuesta mínima ni por encima de tu saldo disponible.
-      </p>
-    </section>
-
-    <section class="card space-y-3 p-4">
-      <h2 class="font-bold">Control de riesgo</h2>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Umbral de valor (%)</span>
-        <input v-model.number="form.threshold_pct" type="number" step="0.1" required class="field" />
-      </label>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Tope diario de apuestas</span>
-        <input v-model.number="form.daily_bet_limit" type="number" min="0" step="1" required class="field" />
-      </label>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Probabilidad mínima para recomendar (%)</span>
-        <input v-model.number="form.min_probability_pct" type="number" min="50" max="99" step="1" required class="field" />
-      </label>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Exposición máxima por día (% del capital inicial)</span>
-        <input v-model.number="form.daily_exposure_pct" type="number" min="0.1" step="0.1" required class="field" />
-      </label>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Límite de pérdida mensual (% del capital inicial)</span>
-        <input v-model.number="form.monthly_loss_limit_pct" type="number" min="0.1" step="0.1" required class="field" />
-      </label>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Avisar tras esta cantidad de apuestas perdidas seguidas</span>
-        <input v-model.number="form.losing_streak_alert" type="number" min="1" step="1" required class="field" />
-      </label>
-
-      <p class="text-xs text-ink/60">
-        Los límites se calculan sobre tu capital inicial, no sobre el saldo, para que no crezcan al ganar. Estos valores son
-        puntos de partida: ajústalos a lo que estés dispuesto a perder.
+      <p v-if="!hasUnit" class="text-[11px] text-marginal">
+        La unidad se podrá cambiar cuando se aplique la última migración de la base de datos; mientras tanto se usa 10.
       </p>
     </section>
 
