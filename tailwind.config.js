@@ -29,8 +29,26 @@ export default {
       fontFamily: {
         sans: ['Manrope', 'system-ui', 'sans-serif'],
       },
-      minHeight: { touch: '2.75rem' }, // 44 px
-      minWidth: { touch: '2.75rem' },
+      // Escala única de la app: todo sale de variables CSS (src/style.css) que cambian con la densidad y el ancho de pantalla.
+      fontSize: {
+        cap: ['var(--fs-cap)', 'var(--lh-cap)'], // rótulos secundarios: nunca menos de 12 px
+        xs: ['var(--fs-xs)', 'var(--lh-xs)'], // datos: 14 px en móvil
+        sm: ['var(--fs-sm)', 'var(--lh-sm)'], // texto principal: 15 px en móvil
+        title: ['clamp(0.9375rem, 0.9rem + 0.15vw, 1rem)', '1.25rem'], // títulos de tarjeta
+      },
+      spacing: {
+        pad: 'var(--pad)', // relleno de tarjetas
+        'pad-sm': 'var(--pad-sm)', // relleno de filas y bloques internos
+        stack: 'var(--gap)', // separación entre bloques
+        'stack-sm': 'var(--gap-sm)', // separación dentro de un bloque
+        'page-x': 'var(--page-x)', // margen lateral de la página
+        'page-y': 'var(--page-y)', // margen vertical de la página
+      },
+      borderRadius: { card: 'var(--radius)', ctl: 'var(--radius-sm)' },
+      minHeight: { touch: 'var(--touch)' }, // alto mínimo de controles: 44 px cómodo; 40 px (móvil) o 36 px (escritorio) compacto
+      minWidth: { touch: 'var(--touch)' },
+      height: { touch: 'var(--touch)' },
+      maxWidth: { page: '110rem' },
     },
   },
   plugins: [],

@@ -25,7 +25,7 @@ const reaches = computed(() => props.min == null || props.value >= props.min);
     <template v-if="minPct !== null">
       <span class="absolute top-[-3px] h-4 w-0.5 rounded bg-ink/60" :style="{ left: `calc(${minPct}% - 1px)` }" aria-hidden="true" />
       <span
-        class="absolute top-[18px] -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold text-ink/55"
+        class="absolute top-[18px] -translate-x-1/2 whitespace-nowrap text-cap font-semibold text-ink/55"
         :style="{ left: `${Math.min(Math.max(minPct, 8), 92)}%` }"
       >
         tu mínimo {{ Math.round(minPct) }}%

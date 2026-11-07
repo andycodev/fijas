@@ -40,18 +40,18 @@ const reaches = computed(() => s.value.probability >= props.minProbability);
 </script>
 
 <template>
-  <article class="card flex flex-col gap-2 p-3">
+  <article class="card flex flex-col gap-stack-sm p-pad-sm">
     <!-- Partido y valor -->
     <header class="flex items-start justify-between gap-2">
-      <div class="min-w-0">
-        <p class="eyebrow truncate">{{ s.match.league?.name }} · {{ when(s.match.kickoff_at) }}</p>
-        <h3 class="truncate text-[15px] font-extrabold leading-tight">
+      <div class="min-w-0 break-words">
+        <p class="eyebrow">{{ s.match.league?.name }} · {{ when(s.match.kickoff_at) }}</p>
+        <h3 class="text-title font-extrabold leading-tight">
           {{ s.match.home?.name }} <span class="font-semibold text-ink/45">vs</span> {{ s.match.away?.name }}
         </h3>
       </div>
       <button
         type="button"
-        class="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-sm font-extrabold"
+        class="inline-flex min-h-touch shrink-0 items-center gap-1 rounded-lg px-2.5 text-sm font-extrabold"
         :class="signal === 'green' ? 'bg-value/15 text-value' : signal === 'yellow' ? 'bg-marginal/15 text-marginal' : 'bg-novalue/15 text-novalue'"
         aria-haspopup="dialog"
         :aria-label="`Valor esperado ${evText(ev)}. Ver cómo se calcula`"
@@ -65,25 +65,25 @@ const reaches = computed(() => s.value.probability >= props.minProbability);
     <!-- Selección -->
     <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
       <span class="text-base font-extrabold text-brand">{{ selectionLabel(s.market, s.side, s.line) }}</span>
-      <span class="rounded-full bg-sunken px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink/60">{{ MARKET_LABEL[s.market] }}</span>
+      <span class="rounded-full bg-sunken px-2 py-0.5 text-cap font-bold uppercase tracking-wide text-ink/60">{{ MARKET_LABEL[s.market] }}</span>
     </p>
 
     <!-- Cifras clave -->
-    <dl class="grid grid-cols-4 gap-1 rounded-lg bg-tint/45 px-2 py-2 text-center">
+    <dl class="grid grid-cols-4 gap-1 rounded-ctl bg-tint/45 px-2 py-stack-sm text-center [&>div]:flex [&>div]:flex-col [&>div]:justify-between">
       <div>
-        <dt class="text-[10px] text-ink/60">Prob. modelo</dt>
+        <dt class="text-cap text-ink/60">Prob. modelo</dt>
         <dd class="num text-lg font-extrabold leading-tight text-brand">{{ (s.probability * 100).toFixed(1) }}%</dd>
       </div>
       <div>
-        <dt class="text-[10px] text-ink/60">Cuota <Betano /></dt>
+        <dt class="text-cap text-ink/60">Cuota <Betano /></dt>
         <dd class="num text-lg font-extrabold leading-tight">{{ odds.toFixed(2) }}</dd>
       </div>
       <div>
-        <dt class="text-[10px] text-ink/60">Cuota justa</dt>
+        <dt class="text-cap text-ink/60">Cuota justa</dt>
         <dd class="num text-lg font-extrabold leading-tight text-ink/75">{{ s.fairOdds.toFixed(2) }}</dd>
       </div>
       <div>
-        <dt class="text-[10px] text-ink/60">Evidencia</dt>
+        <dt class="text-cap text-ink/60">Evidencia</dt>
         <dd class="flex min-h-7 items-center justify-center gap-1 text-sm font-bold leading-tight">
           <span class="h-2 w-2 rounded-full" :class="CONF[confidence.level].dot" aria-hidden="true" />{{ CONF[confidence.level].label }}
         </dd>
@@ -96,16 +96,16 @@ const reaches = computed(() => s.value.probability >= props.minProbability);
 
     <!-- Pie: origen de la cuota y análisis bajo demanda -->
     <footer class="flex flex-wrap items-center justify-between gap-2">
-      <p class="min-w-0 text-[11px] text-ink/55">
+      <p class="min-w-0 text-cap text-ink/55">
         <template v-if="s.betano!.origin === 'manual'">Cuota escrita por ti</template>
         <template v-else><Betano /> · {{ hour(s.betano!.capturedAt) }} · <strong>sin verificar</strong></template>
         · Proyección <strong class="num">{{ s.projection.toFixed(1) }}</strong>
       </p>
-      <button type="button" class="btn !min-h-9 shrink-0 !px-3 text-xs" aria-haspopup="dialog" @click="whyOpen = true">¿Por qué esta probabilidad?</button>
+      <button type="button" class="btn !min-h-touch shrink-0 !px-3 text-xs" aria-haspopup="dialog" @click="whyOpen = true">¿Por qué esta probabilidad?</button>
     </footer>
 
     <details v-if="ev > HIGH_EV" class="rounded-md border border-marginal bg-marginal/10 text-xs">
-      <summary class="flex min-h-9 cursor-pointer items-center gap-1.5 px-2 font-bold text-marginal">
+      <summary class="flex min-h-touch cursor-pointer items-center gap-1.5 px-2 font-bold text-marginal">
         <ExclamationTriangleIcon class="h-4 w-4 shrink-0" aria-hidden="true" />Valor inusualmente alto: verifica la cuota
       </summary>
       <div class="p-2 pt-0"><HighValueNotice :ev="ev" :probability="s.probability" :odds="odds" :origin="s.betano!.origin" :captured-at="s.betano!.capturedAt" /></div>

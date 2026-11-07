@@ -81,8 +81,8 @@ async function addLeagues(ids: number[]) {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <section class="card space-y-3 p-4" aria-labelledby="mine-title">
+  <div class="space-y-stack">
+    <section class="card space-y-stack-sm p-pad" aria-labelledby="mine-title">
       <div>
         <h2 id="mine-title" class="font-bold">Mis ligas y competiciones</h2>
         <p class="text-xs text-ink/60">
@@ -94,19 +94,19 @@ async function addLeagues(ids: number[]) {
 
       <div v-if="selected.length" class="flex flex-wrap items-center gap-2 rounded-md bg-canvas p-2 text-xs" role="group" aria-label="Acciones sobre las seleccionadas">
         <span class="font-bold">{{ selected.length }} seleccionadas</span>
-        <button class="btn !min-h-9 !px-3 text-xs" @click="applyToSelected((ids) => setActive(ids, true))">Activar</button>
-        <button class="btn !min-h-9 !px-3 text-xs" @click="applyToSelected((ids) => setActive(ids, false))">Desactivar</button>
-        <button class="btn !min-h-9 !px-3 text-xs" @click="applyToSelected((ids) => setFavorite(ids, true))">Favoritas</button>
-        <button class="btn !min-h-9 !px-3 text-xs" @click="selected = []">Limpiar</button>
+        <button class="btn !min-h-touch !px-3 text-xs" @click="applyToSelected((ids) => setActive(ids, true))">Activar</button>
+        <button class="btn !min-h-touch !px-3 text-xs" @click="applyToSelected((ids) => setActive(ids, false))">Desactivar</button>
+        <button class="btn !min-h-touch !px-3 text-xs" @click="applyToSelected((ids) => setFavorite(ids, true))">Favoritas</button>
+        <button class="btn !min-h-touch !px-3 text-xs" @click="selected = []">Limpiar</button>
       </div>
 
       <FootballLoader v-if="leagues.isLoading.value" size="sm" label="Cargando ligas…" />
-      <ul v-else class="divide-y divide-line">
-        <li v-for="l in visible" :key="l.id" class="flex items-center gap-3 py-2">
+      <ul v-else class="grid lg:grid-cols-2 lg:gap-x-6 [&>li]:border-b [&>li]:border-line">
+        <li v-for="l in visible" :key="l.id" class="flex items-center gap-3 py-stack-sm">
           <input v-model="selected" type="checkbox" :value="l.id" class="h-5 w-5 shrink-0 accent-primary" :aria-label="`Seleccionar ${l.name}`" />
           <div class="min-w-0 flex-1">
-            <p class="truncate font-semibold">{{ l.name }}</p>
-            <p class="truncate text-xs text-ink/60">
+            <p class="font-semibold">{{ l.name }}</p>
+            <p class="text-xs text-ink/60">
               {{ l.country }} · {{ l.kind === 'cup' ? 'Copa' : 'Liga' }} ·
               <span :class="l.football_data_code ? 'text-value' : 'text-marginal'">
                 {{ l.football_data_code ? 'con histórico para picks' : 'sin histórico gratuito: sin picks' }}
@@ -139,7 +139,7 @@ async function addLeagues(ids: number[]) {
       <p v-if="update.isError.value" role="alert" class="text-xs font-semibold text-novalue">No se pudo guardar el cambio.</p>
     </section>
 
-    <section class="card space-y-3 p-4" aria-labelledby="catalog-title">
+    <section class="card space-y-stack-sm p-pad" aria-labelledby="catalog-title">
       <div>
         <h2 id="catalog-title" class="font-bold">Agregar desde la API</h2>
         <p class="text-xs text-ink/60">
@@ -162,17 +162,17 @@ async function addLeagues(ids: number[]) {
 
         <div v-if="picked.length" class="flex items-center gap-2 rounded-md bg-canvas p-2 text-xs">
           <span class="font-bold">{{ picked.length }} seleccionadas</span>
-          <button class="btn btn-primary !min-h-9 !px-3 text-xs" :disabled="adding" @click="addLeagues(picked)">
+          <button class="btn btn-primary !min-h-touch !px-3 text-xs" :disabled="adding" @click="addLeagues(picked)">
             {{ adding ? 'Agregando…' : 'Agregar seleccionadas' }}
           </button>
         </div>
 
-        <ul class="divide-y divide-line">
+        <ul class="grid lg:grid-cols-2 lg:gap-x-6 [&>li]:border-b [&>li]:border-line">
           <li v-for="c in results" :key="c.id" class="flex items-center gap-3 py-2">
             <input v-model="picked" type="checkbox" :value="c.id" class="h-5 w-5 shrink-0 accent-primary" :aria-label="`Elegir ${c.name}`" />
             <div class="min-w-0 flex-1">
-              <p class="truncate font-semibold">{{ c.name }}</p>
-              <p class="truncate text-xs text-ink/60">
+              <p class="font-semibold">{{ c.name }}</p>
+              <p class="text-xs text-ink/60">
                 {{ c.country }} · {{ c.type === 'Cup' ? 'Copa' : 'Liga' }} ·
                 <span :class="c.hasHistory ? 'text-value' : 'text-marginal'">{{ c.hasHistory ? 'con histórico para picks' : 'sin histórico gratuito' }}</span>
               </p>
@@ -181,7 +181,7 @@ async function addLeagues(ids: number[]) {
           </li>
           <li v-if="!results.length" class="py-3 text-xs text-ink/60">No hay resultados (o ya las tienes agregadas).</li>
         </ul>
-        <p class="text-[11px] text-ink/50">Se muestran hasta 40 resultados; afina la búsqueda para ver otras.</p>
+        <p class="text-cap text-ink/50">Se muestran hasta 40 resultados; afina la búsqueda para ver otras.</p>
       </template>
 
       <p v-if="adding" class="text-xs text-ink/70">Agregando… cargar el histórico de una liga puede tardar unos segundos.</p>

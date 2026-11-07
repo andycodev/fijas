@@ -8,7 +8,7 @@ import { useFiltersStore } from '../stores/filters';
 // Filtro por día, en una sola franja: botones con su cantidad de PARTIDOS y, al lado, el resumen de lo seleccionado.
 // stats.analyzed = partidos con análisis del modelo; stats.recommended = selecciones que pasan todos los filtros.
 export interface DayStats { matches: number; analyzed?: number; recommended?: number }
-const props = defineProps<{ stats?: Partial<Record<DayFilter, DayStats>>; bare?: boolean }>();
+const props = defineProps<{ stats?: Partial<Record<DayFilter, DayStats>>; bare?: boolean; summaryOnly?: boolean }>();
 const filters = useFiltersStore();
 const OPTIONS: DayFilter[] = ['today', 'tomorrow', 'all'];
 const hint = ref(false);
@@ -41,19 +41,19 @@ const summary = computed(() => {
 <template>
   <div class="space-y-1.5">
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-      <div class="inline-flex rounded-lg border border-line bg-sunken p-0.5" role="group" aria-label="Filtrar por fecha del partido">
+      <div v-if="!summaryOnly" class="inline-flex rounded-ctl border border-line bg-sunken p-0.5" role="group" aria-label="Filtrar por fecha del partido">
         <button
           v-for="d in OPTIONS"
           :key="d"
           type="button"
-          class="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors"
+          class="inline-flex min-h-touch items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-colors sm:px-3"
           :class="filters.day === d ? 'bg-surface text-brand shadow-sm' : 'text-ink/60 hover:text-ink'"
           :aria-pressed="filters.day === d"
           :title="dateOf(d)"
           @click="filters.day = d"
         >
           {{ DAY_LABEL[d] }}
-          <span v-if="stats?.[d]" class="num rounded-full bg-primary/10 px-1.5 text-[10px] text-brand" :class="stats[d]!.matches ? '' : 'opacity-60'">{{ stats[d]!.matches }}</span>
+          <span v-if="stats?.[d]" class="num rounded-full bg-primary/10 px-1.5 text-cap text-brand" :class="stats[d]!.matches ? '' : 'opacity-60'">{{ stats[d]!.matches }}</span>
         </button>
       </div>
 

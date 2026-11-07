@@ -69,30 +69,32 @@ const USE: Record<Use, { label: string; cls: string; icon: typeof CheckCircleIco
     <template #subtitle>Cómo analiza los partidos, qué variables usa y cuánto se puede confiar en sus porcentajes.</template>
   </PageHeader>
 
-  <div class="space-y-8">
+  <div class="space-y-stack">
     <!-- 1. Cómo analiza -->
-    <section aria-labelledby="how-title" class="space-y-3">
-      <h2 id="how-title" class="text-lg font-extrabold">Cómo analiza un partido</h2>
-      <ol class="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
-        <li v-for="(st, i) in steps" :key="st.title" class="card space-y-2 p-4" :class="i < 3 ? 'lg:col-span-2' : 'lg:col-span-3'">
-          <span class="num inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-extrabold text-white">{{ i + 1 }}</span>
-          <h3 class="font-extrabold">{{ st.title }}</h3>
-          <p class="text-xs leading-relaxed text-ink/70">{{ st.body }}</p>
+    <section aria-labelledby="how-title" class="space-y-stack-sm">
+      <h2 id="how-title" class="text-base font-extrabold">Cómo analiza un partido</h2>
+      <ol class="grid items-start gap-stack sm:grid-cols-2 lg:grid-cols-5">
+        <li v-for="(st, i) in steps" :key="st.title" class="card space-y-stack-sm p-pad-sm">
+          <div class="flex items-center gap-2">
+            <span class="num inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-white">{{ i + 1 }}</span>
+            <h3 class="font-extrabold leading-tight">{{ st.title }}</h3>
+          </div>
+          <p class="text-xs leading-snug text-ink/70">{{ st.body }}</p>
         </li>
       </ol>
     </section>
 
     <!-- 2. Variables -->
-    <section aria-labelledby="vars-title" class="space-y-3">
+    <section aria-labelledby="vars-title" class="space-y-stack-sm">
       <div>
-        <h2 id="vars-title" class="text-lg font-extrabold">Qué variables considera</h2>
+        <h2 id="vars-title" class="text-base font-extrabold">Qué variables considera</h2>
         <p class="text-xs text-ink/65">
           Importante: el porcentaje sale <strong>solo</strong> de los goles o córners a favor y en contra. El resto de datos se muestra en
           «¿Por qué esta probabilidad?» para que puedas contrastar la estimación, pero no la modifica.
         </p>
       </div>
       <ul class="space-y-2 md:hidden">
-        <li v-for="v in variables" :key="v.name" class="card space-y-1.5 p-3 text-xs">
+        <li v-for="v in variables" :key="v.name" class="card space-y-1 p-pad-sm text-xs">
           <p class="font-bold">{{ v.name }}</p>
           <p class="inline-flex items-center gap-1.5 font-bold" :class="USE[v.use].cls">
             <component :is="USE[v.use].icon" class="h-4 w-4" aria-hidden="true" />{{ USE[v.use].label }}
@@ -106,22 +108,22 @@ const USE: Record<Use, { label: string; cls: string; icon: typeof CheckCircleIco
           <caption class="sr-only">Variables del modelo y si entran en el cálculo</caption>
           <thead class="bg-sunken text-ink/60">
             <tr>
-              <th scope="col" class="px-4 py-2 font-semibold">Variable</th>
-              <th scope="col" class="px-4 py-2 font-semibold">Mercado</th>
-              <th scope="col" class="px-4 py-2 font-semibold">¿Entra en el porcentaje?</th>
-              <th scope="col" class="px-4 py-2 font-semibold">Nota</th>
+              <th scope="col" class="px-pad-sm py-stack-sm font-semibold">Variable</th>
+              <th scope="col" class="px-pad-sm py-stack-sm font-semibold">Mercado</th>
+              <th scope="col" class="px-pad-sm py-stack-sm font-semibold">¿Entra en el porcentaje?</th>
+              <th scope="col" class="px-pad-sm py-stack-sm font-semibold">Nota</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-line">
             <tr v-for="v in variables" :key="v.name">
-              <th scope="row" class="px-4 py-2.5 font-semibold">{{ v.name }}</th>
-              <td class="px-4 py-2.5 text-ink/70">{{ v.where }}</td>
-              <td class="px-4 py-2.5">
+              <th scope="row" class="px-pad-sm py-stack-sm font-semibold">{{ v.name }}</th>
+              <td class="px-pad-sm py-stack-sm text-ink/70">{{ v.where }}</td>
+              <td class="px-pad-sm py-stack-sm">
                 <span class="inline-flex items-center gap-1.5 font-bold" :class="USE[v.use].cls">
                   <component :is="USE[v.use].icon" class="h-4 w-4" aria-hidden="true" />{{ USE[v.use].label }}
                 </span>
               </td>
-              <td class="px-4 py-2.5 text-ink/70">{{ v.note }}</td>
+              <td class="px-pad-sm py-stack-sm text-ink/70">{{ v.note }}</td>
             </tr>
           </tbody>
         </table>
@@ -129,36 +131,36 @@ const USE: Record<Use, { label: string; cls: string; icon: typeof CheckCircleIco
     </section>
 
     <!-- 3. Cómo decide si hay valor -->
-    <section aria-labelledby="value-title" class="space-y-3">
-      <h2 id="value-title" class="text-lg font-extrabold">Cómo decide si un pick tiene valor</h2>
-      <div class="grid gap-3 lg:grid-cols-3">
-        <div class="card space-y-2 p-4">
+    <section aria-labelledby="value-title" class="space-y-stack-sm">
+      <h2 id="value-title" class="text-base font-extrabold">Cómo decide si un pick tiene valor</h2>
+      <div class="grid gap-stack lg:grid-cols-3">
+        <div class="card space-y-1.5 p-pad">
           <p class="eyebrow text-brand">Filtro 1 · Probabilidad</p>
-          <p class="num text-3xl font-extrabold text-brand">{{ Math.round(minProbability * 100) }}%</p>
+          <p class="num text-2xl font-extrabold text-brand">{{ Math.round(minProbability * 100) }}%</p>
           <p class="text-xs text-ink/70">Solo se consideran selecciones con esta probabilidad o más. Lo cambias en Picks. Por debajo de 60% se descarta; de 70 a 74% queda en observación.</p>
         </div>
-        <div class="card space-y-2 p-4">
+        <div class="card space-y-1.5 p-pad">
           <p class="eyebrow text-brand">Filtro 2 · Cuota real</p>
-          <p class="text-3xl font-extrabold"><Betano /></p>
+          <p class="text-2xl font-extrabold"><Betano /></p>
           <p class="text-xs text-ink/70">Sin cuota de <Betano /> no se puede calcular el valor. La cuota del proveedor se marca «sin verificar»; la que escribes tú queda confirmada.</p>
         </div>
-        <div class="card space-y-2 p-4">
+        <div class="card space-y-1.5 p-pad">
           <p class="eyebrow text-brand">Filtro 3 · Valor esperado</p>
-          <p class="num text-3xl font-extrabold text-brand">≥ {{ (threshold * 100).toFixed(1) }}%</p>
+          <p class="num text-2xl font-extrabold text-brand">≥ {{ (threshold * 100).toFixed(1) }}%</p>
           <p class="text-xs text-ink/70">
             Valor esperado = probabilidad × cuota − 1. Verde si llega a tu umbral, ámbar si es positivo pero menor, rojo si es negativo.
             Por encima de +15% la app pide verificar la cuota.
           </p>
         </div>
       </div>
-      <p class="rounded-lg bg-tint/45 p-3 text-xs text-ink/80">
+      <p class="rounded-ctl bg-tint/45 p-pad-sm text-xs text-ink/80">
         <strong>Ejemplo:</strong> el modelo da 65% y <Betano /> paga 1.70. Cuota justa: 1 ÷ 0.65 = 1.54. Valor esperado: 0.65 × 1.70 − 1 = <strong>+10.5%</strong>.
         Con una cuota de 1.40 sería 0.65 × 1.40 − 1 = −9%: aunque acierte seguido, a la larga pierdes.
       </p>
     </section>
 
     <!-- 4. Rendimiento de las recomendaciones: tiene su propia sección -->
-    <RouterLink :to="{ name: 'performance' }" class="card flex items-center justify-between gap-3 p-4 transition-colors hover:border-accent">
+    <RouterLink :to="{ name: 'performance' }" class="card flex items-center justify-between gap-3 p-pad transition-colors hover:border-accent">
       <span>
         <span class="block text-sm font-extrabold">Rendimiento del modelo</span>
         <span class="block text-xs text-ink/65">Qué recomendó, qué ganó y qué perdió, con gráficos. Ahora tiene su propia sección.</span>
@@ -167,17 +169,17 @@ const USE: Record<Use, { label: string; cls: string; icon: typeof CheckCircleIco
     </RouterLink>
 
     <!-- 5. Precisión histórica -->
-    <section aria-labelledby="acc-title" class="space-y-3">
+    <section aria-labelledby="acc-title" class="space-y-stack-sm">
       <div>
-        <h2 id="acc-title" class="text-lg font-extrabold">Precisión histórica</h2>
+        <h2 id="acc-title" class="text-base font-extrabold">Precisión histórica</h2>
         <p class="text-xs text-ink/65">
           Cada partido se predijo usando solo lo que se sabía antes de jugarse. Si el modelo dice «75–79%», ¿ocurrió realmente cerca del
           77%? Cuanto más cerca estén el círculo hueco (previsto) y el lleno (real), mejor calibrado. Generado el {{ generated }}.
         </p>
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-2">
-        <div v-for="(label, key) in { goals_total: 'Goles', corners_total: 'Córners' }" :key="key" class="card space-y-3 p-4">
+      <div class="grid gap-stack lg:grid-cols-2">
+        <div v-for="(label, key) in { goals_total: 'Goles', corners_total: 'Córners' }" :key="key" class="card space-y-stack-sm p-pad">
           <CalibrationChart
             :title="`${label} · ${reports[key]!.evaluatedMatches.toLocaleString('es')} partidos desde ${reports[key]!.period}`"
             :buckets="reports[key]!.buckets"
@@ -191,7 +193,7 @@ const USE: Record<Use, { label: string; cls: string; icon: typeof CheckCircleIco
         </div>
       </div>
 
-      <div class="card space-y-1 p-4 text-xs text-ink/75">
+      <div class="card space-y-1 p-pad text-xs text-ink/75">
         <p class="font-bold text-ink">Cómo leerla, con honestidad</p>
         <ul class="list-disc space-y-1 pl-4">
           <li>Mide si las <strong>probabilidades son creíbles</strong>. No mide si las cuotas de <Betano /> pagan lo suficiente: eso se comprueba con las recomendaciones registradas, en Rendimiento.</li>

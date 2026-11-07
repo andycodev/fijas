@@ -76,7 +76,7 @@ const pct = (p: number) => `${(p * 100).toFixed(1)}%`;
           <span :class="CONF_CLASS[r.level]">●</span> {{ r.label }}
         </li>
       </ul>
-      <p class="mt-1 text-[11px] text-ink/50">
+      <p class="mt-1 text-cap text-ink/50">
         Los partidos de ligas nacionales se usan también para copas europeas; el estilo puede cambiar contra rivales de otro nivel.
       </p>
     </div>

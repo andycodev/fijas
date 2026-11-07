@@ -12,7 +12,7 @@ const tabs = [
 <template>
   <PageHeader title="Ajustes" subtitle="Tu perfil, tus ligas y el consumo de la API" />
 
-  <nav class="mb-4 grid grid-cols-3 gap-2" aria-label="Secciones de ajustes">
+  <nav class="sticky-bar mb-stack grid grid-cols-3 gap-stack-sm" aria-label="Secciones de ajustes">
     <RouterLink
       v-for="t in tabs"
       :key="t.name"

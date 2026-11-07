@@ -94,7 +94,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
         </ul>
       </div>
 
-      <p class="text-[11px] text-ink/60">
+      <p class="text-cap text-ink/60">
         Es una estimación: depende de que la probabilidad del modelo sea correcta y, con pocas apuestas, el azar domina.
         <template v-if="ev > HIGH_EV">
           Un valor por encima de +{{ HIGH_EV * 100 }}% es poco habitual: confirma la cuota en tu <Betano /> antes de apostar.

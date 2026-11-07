@@ -74,6 +74,8 @@ const visible = computed(() => (showAll.value ? sorted.value : sorted.value.slic
 const best = computed(() => sorted.value.find((s) => s.ev !== null && signalFor(s.ev, props.threshold) === 'green') ?? null);
 const hidden = computed(() => all.value.length - eligible.value.length);
 
+// Un partido sin selecciones con valor ocupa una fila mínima y más tenue.
+const muted = computed(() => !best.value);
 const signalOf = (s: Selection): Signal | null => (s.ev === null ? null : signalFor(s.ev, props.threshold));
 const needed = (s: Selection) => (1 + props.threshold) / s.probability;
 
@@ -96,27 +98,30 @@ function persist(line: number) {
 </script>
 
 <template>
-  <article class="card overflow-hidden" :class="{ 'col-span-full': open }">
-    <button class="flex min-h-touch w-full items-center gap-3 px-3 py-2.5 text-left" :aria-expanded="open" @click="open = !open">
-      <div class="min-w-0 flex-1">
-        <p class="eyebrow">{{ match.league?.name }} · {{ kickoff }}</p>
-        <p class="truncate text-base font-extrabold">{{ match.home?.name }} <span class="font-semibold text-ink/45">vs</span> {{ match.away?.name }}</p>
-        <p class="mt-1.5 text-xs">
-          <span v-if="best" class="inline-flex items-center rounded-full bg-value/15 px-2.5 py-1 font-bold text-value">
-            Mejor: {{ best.side === 'over' ? 'Más de' : 'Menos de' }} {{ best.line }} · {{ evText(best.ev!) }}
-          </span>
-          <span v-else-if="eligible.some((s) => s.betano)" class="text-ink/60">Sin selecciones con valor ahora</span>
-          <span v-else class="text-ink/60">Sin cuotas de <Betano /></span>
-        </p>
-      </div>
-      <div class="text-right">
-        <p class="text-[11px] text-ink/55">{{ MARKET_LABEL[market] }} esperados</p>
-        <p class="num text-2xl font-extrabold leading-none text-brand">{{ projection?.toFixed(1) }}</p>
-      </div>
+  <article class="bg-surface">
+    <!-- Fila del partido: hora, liga, partido, esperados y mejor selección en una sola línea (apilada en móvil) -->
+    <button class="flex min-h-touch w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-pad-sm py-stack-sm text-left md:flex-nowrap" :aria-expanded="open" @click="open = !open">
+      <span class="eyebrow w-full md:hidden">{{ match.league?.name }} · {{ kickoff }}</span>
+      <span class="eyebrow hidden md:block md:w-36 md:shrink-0">{{ kickoff }}</span>
+      <span class="eyebrow hidden md:block md:w-44 md:shrink-0">{{ match.league?.name }}</span>
+      <span class="min-w-0 flex-1 font-extrabold md:basis-56" :class="muted ? 'text-sm font-semibold text-ink/80' : 'text-title'">
+        {{ match.home?.name }} <span class="font-semibold text-ink/45">vs</span> {{ match.away?.name }}
+      </span>
+      <span class="shrink-0 text-right">
+        <span class="text-cap text-ink/55">{{ MARKET_LABEL[market] }} esperados</span>
+        <span class="num ml-1 text-lg font-extrabold leading-none text-brand">{{ projection?.toFixed(1) }}</span>
+      </span>
+      <span class="ml-auto text-xs md:ml-0 md:min-w-52 md:text-right">
+        <span v-if="best" class="inline-flex items-center rounded-full bg-value/15 px-2.5 py-0.5 font-bold text-value">
+          Mejor: {{ best.side === 'over' ? 'Más de' : 'Menos de' }} {{ best.line }} · {{ evText(best.ev!) }}
+        </span>
+        <span v-else-if="eligible.some((s) => s.betano)" class="text-ink/65">Sin selecciones con valor ahora</span>
+        <span v-else class="text-ink/65">Sin cuotas de <Betano /></span>
+      </span>
       <ChevronDownIcon class="h-5 w-5 shrink-0 text-ink/50 transition-transform" :class="{ 'rotate-180': open }" />
     </button>
 
-    <div v-if="open" class="border-t border-line">
+    <div v-if="open" class="border-t border-line bg-surface">
       <ul class="grid divide-y divide-line lg:grid-cols-2 lg:gap-px lg:divide-y-0 lg:bg-line xl:grid-cols-3 [&>li:last-child:nth-child(odd)]:lg:col-span-2 xl:[&>li:last-child:nth-child(odd)]:col-span-1">
         <li v-for="s in visible" :key="s.key" class="space-y-2 bg-surface px-3 py-3">
           <!-- Selección + veredicto -->
@@ -152,7 +157,7 @@ function persist(line: number) {
               </div>
             </div>
             <div class="mt-2"><ProbabilityMeter :value="s.probability" :min="minProbability || null" /></div>
-            <span class="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold" :class="BAND_CLASS[s.band]">{{ BAND_LABEL[s.band] }}</span>
+            <span class="inline-block rounded-full px-2 py-0.5 text-cap font-bold" :class="BAND_CLASS[s.band]">{{ BAND_LABEL[s.band] }}</span>
           </div>
 
           <!-- Recomendación -->
@@ -168,7 +173,7 @@ function persist(line: number) {
               <p v-if="signalOf(s) !== 'green'" class="mt-0.5 text-ink/70">
                 Para valer la pena debería pagar al menos <strong class="num">{{ odds2(needed(s)) }}</strong>.
               </p>
-              <p class="mt-0.5 text-[11px] text-ink/50">
+              <p class="mt-0.5 text-cap text-ink/50">
                 <template v-if="s.betano.origin === 'manual'">Cuota escrita por ti (confirmada)</template>
                 <template v-else><Betano /> vía proveedor · {{ fmtTime(s.betano.capturedAt) }} · sin verificar</template>
               </p>
@@ -177,8 +182,8 @@ function persist(line: number) {
           </div>
 
           <!-- Estadísticas -->
-          <p class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-sunken px-3 py-2 text-[11px] text-ink/65">
-            <span class="eyebrow !text-[10px]">Estadísticas</span>
+          <p class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-sunken px-3 py-2 text-cap text-ink/65">
+            <span class="eyebrow !text-cap">Estadísticas</span>
             <span><strong class="num">{{ s.gamesHome ?? '?' }} + {{ s.gamesAway ?? '?' }}</strong> partidos</span>
             <span v-if="daysAgo(s.latestGameAt) !== null">· dato más antiguo de hace {{ daysAgo(s.latestGameAt) }} d</span>
             <span class="inline-flex items-center gap-1 font-bold">· <span class="h-2 w-2 rounded-full" :class="CONF_DOT[confidenceOf(s).level]" aria-hidden="true" />{{ CONF_LABEL[confidenceOf(s).level] }}</span>
@@ -223,7 +228,7 @@ function persist(line: number) {
       >
         {{ showAll ? 'Ver menos' : `Ver las ${sorted.length - VISIBLE} restantes` }}
       </button>
-      <p v-if="hidden > 0" class="border-t border-line px-4 py-2 text-[11px] text-ink/50">
+      <p v-if="hidden > 0" class="border-t border-line px-4 py-2 text-cap text-ink/50">
         {{ hidden }} selecciones con menos de {{ Math.round(minProbability * 100) }}% de probabilidad no se muestran.
       </p>
 

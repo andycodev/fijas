@@ -16,7 +16,7 @@ const signed = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(1)}%
   <figure class="card space-y-2 p-4">
     <figcaption class="flex items-baseline justify-between gap-2">
       <span class="text-sm font-bold">{{ title }}</span>
-      <span class="text-[11px] text-ink/55">ROI teórico · acierto</span>
+      <span class="text-cap text-ink/55">ROI teórico · acierto</span>
     </figcaption>
     <p v-if="!rows.length" class="text-xs text-ink/60">Sin recomendaciones resueltas todavía.</p>
     <ul v-else class="space-y-2">

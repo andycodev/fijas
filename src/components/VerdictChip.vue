@@ -14,7 +14,7 @@ const MAP = {
 </script>
 
 <template>
-  <span class="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold" :class="MAP[signal ?? 'none'].cls">
+  <span class="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-cap font-bold" :class="MAP[signal ?? 'none'].cls">
     <component :is="MAP[signal ?? 'none'].icon" class="h-3.5 w-3.5" aria-hidden="true" />
     {{ MAP[signal ?? 'none'].label }}
   </span>

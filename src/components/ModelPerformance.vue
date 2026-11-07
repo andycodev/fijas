@@ -3,9 +3,11 @@ import FootballLoader from './FootballLoader.vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import CalibrationChart from './CalibrationChart.vue';
 import CumulativeProfitChart from './CumulativeProfitChart.vue';
+import EvaluationTable from './EvaluationTable.vue';
 import RecommendationItem from './RecommendationItem.vue';
 import RoiBars from './RoiBars.vue';
 import StreakDots from './StreakDots.vue';
+import { useMediaQuery } from '../composables/useMediaQuery';
 import { useProfile } from '../composables/useProfile';
 import { useRecommendations } from '../composables/useAnalysis';
 import { cumulativeSeries, evaluate, MIN_FOR_CONCLUSION, phaseOf, type EvalRow, type Group } from '../lib/evaluation';
@@ -15,6 +17,7 @@ import type { RecommendationRow } from '../types/db';
 // Rendimiento DEL MODELO: cada recomendación que generó «Analizar», congelada tal como se generó y evaluada contra el resultado real.
 // Es un experimento teórico (una unidad fija por recomendación): no hay dinero real en juego.
 const recs = useRecommendations();
+const isWide = useMediaQuery('(min-width: 768px)'); // tabla desde tablet; en móvil, tarjetas apiladas con los mismos datos
 const profile = useProfile();
 const unit = computed(() => Number(profile.data.value?.unit_value ?? 10) || 10);
 
@@ -89,22 +92,22 @@ const TABLES = computed<{ title: string; rows: Group[]; label: (k: string) => st
 </script>
 
 <template>
-  <section aria-labelledby="perf-title" class="space-y-4">
+  <section aria-labelledby="perf-title" class="space-y-stack">
     <div>
       <h2 id="perf-title" class="text-lg font-extrabold">Resumen y evidencia</h2>
-      <p class="text-xs text-ink/65">
+      <p class="max-w-4xl text-xs text-ink/65">
         Experimento controlado: cada recomendación se guarda <strong>tal como la generó el modelo</strong> y se resuelve sola contra el resultado real, sin volver
         a calcular nada. Es un laboratorio: el ROI y el EV son teóricos y suponen {{ formatMoney(unit) }} (tu unidad teórica, configurable en Ajustes) por recomendación.
       </p>
-      <details class="mt-2 rounded-lg border border-line bg-surface px-3 py-1 text-xs">
-        <summary class="flex min-h-10 cursor-pointer items-center font-bold">¿Cómo cambia el estado de una recomendación?</summary>
+      <details class="mt-stack-sm rounded-ctl border border-line bg-surface px-pad-sm py-0.5 text-xs">
+        <summary class="flex min-h-touch cursor-pointer items-center font-bold">¿Cómo cambia el estado de una recomendación?</summary>
         <ol class="mt-1 list-decimal space-y-1 pl-5 text-ink/75">
           <li><strong>Pendiente:</strong> se guarda al pulsar Analizar y su partido todavía no empieza.</li>
           <li><strong>En curso:</strong> el partido ya empezó y aún no hay resultado definitivo (en juego, esperando que se registre, o aplazado). Se determina por la hora del partido.</li>
           <li><strong>Ganada / Perdida:</strong> cuando el partido termina y el resultado queda registrado, el sistema compara la selección original (más o menos de la línea) con el total real de los 90 minutos. Es automático: el servidor lo revisa cada 20 minutos y no gasta API si no hace falta.</li>
           <li><strong>Cancelada:</strong> partido cancelado, sin resultado definitivo 7 días después, o córners de un partido con tiempo extra. No cuenta como acierto ni fallo.</li>
         </ol>
-        <p class="mt-1 text-ink/60">Una vez resuelta, el estado no se puede cambiar ni se recalcula el modelo.</p>
+        <p class="mt-1 pb-stack-sm text-ink/60">Una vez resuelta, el estado no se puede cambiar ni se recalcula el modelo.</p>
       </details>
     </div>
 
@@ -112,102 +115,97 @@ const TABLES = computed<{ title: string; rows: Group[]; label: (k: string) => st
     <FootballLoader v-else-if="recs.isLoading.value" size="sm" label="Cargando recomendaciones…" />
 
     <template v-else>
-      <!-- CATEGORÍA: principales y de estudio se miden por separado -->
-      <div class="space-y-1.5">
-        <div class="inline-flex flex-wrap rounded-lg border border-line bg-sunken p-0.5" role="group" aria-label="Categoría de recomendaciones">
+      <!-- CATEGORÍA (barra fija): principales y de estudio se miden por separado -->
+      <div class="sticky-bar flex flex-wrap items-center gap-x-4 gap-y-stack-sm">
+        <div class="inline-flex flex-wrap rounded-ctl border border-line bg-sunken p-0.5" role="group" aria-label="Categoría de recomendaciones">
           <button
             v-for="c in CATEGORIES"
             :key="c.v"
             type="button"
-            class="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors"
+            class="inline-flex min-h-touch items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors"
             :class="category === c.v ? 'bg-surface text-brand shadow-sm' : 'text-ink/60 hover:text-ink'"
             :aria-pressed="category === c.v"
             @click="category = c.v; limit = 12"
           >
-            {{ c.l }} <span class="num text-[10px] text-ink/50">{{ categoryCount(c.v) }}</span>
+            {{ c.l }} <span class="num text-cap text-ink/50">{{ categoryCount(c.v) }}</span>
           </button>
         </div>
-        <p class="text-xs text-ink/60">
+        <p class="min-w-0 flex-1 basis-64 text-xs text-ink/60">
           <template v-if="category === 'main'">Las recomendaciones que cumplen todos tus filtros, incluido el valor esperado mínimo.</template>
           <template v-else-if="category === 'low_value'">Selecciones con probabilidad y cuota válidas pero con valor entre 0 y tu umbral. No se muestran como recomendaciones: se registran para comprobar si el modelo también acierta con poco margen.</template>
           <template v-else>Principales y de estudio juntas. Para juzgar al modelo conviene mirarlas por separado.</template>
         </p>
       </div>
 
-      <!-- RESUMEN -->
-      <div class="space-y-4">
-      <dl class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <div class="card p-3"><dt class="text-[11px] text-ink/60">Evaluadas</dt><dd class="num text-2xl font-extrabold">{{ ev.all.resolved }}</dd><dd class="text-[11px] text-ink/55">de {{ ev.all.total }} registradas<template v-if="ev.all.void"> · {{ ev.all.void }} canceladas</template></dd></div>
-        <div class="card p-3"><dt class="text-[11px] text-ink/60">Ganadas</dt><dd class="num text-2xl font-extrabold text-value">{{ ev.all.won }}</dd></div>
-        <div class="card p-3"><dt class="text-[11px] text-ink/60">Perdidas</dt><dd class="num text-2xl font-extrabold text-novalue">{{ ev.all.lost }}</dd></div>
-        <div class="card p-3"><dt class="text-[11px] text-ink/60">Acierto</dt><dd class="num text-2xl font-extrabold">{{ pct(ev.all.hitRate, 0) }}</dd><dd class="text-[11px] text-ink/55">Previsto {{ pct(ev.all.avgProbability, 0) }} · cuota media {{ ev.all.avgOdds?.toFixed(2) ?? '—' }}</dd></div>
-        <div class="card p-3"><dt class="text-[11px] text-ink/60">ROI teórico</dt><dd class="num text-2xl font-extrabold" :class="tone(ev.all.roi)">{{ ev.all.roi === null ? '—' : `${signed(ev.all.roi)}%` }}</dd><dd class="text-[11px] text-ink/55">Ganancia teórica {{ signedMoney(ev.profit) }}</dd></div>
-        <div class="card p-3"><dt class="text-[11px] text-ink/60">EV acumulado</dt><dd class="num text-2xl font-extrabold" :class="tone(ev.expectedProfit)">{{ signedMoney(ev.expectedProfit) }}</dd><dd class="text-[11px] text-ink/55">Lo que el modelo esperaba ganar con lo resuelto</dd></div>
+      <!-- RESUMEN: una franja baja con las 6 cifras -->
+      <dl class="card grid grid-cols-3 divide-x divide-y divide-line overflow-hidden md:grid-cols-6 md:divide-y-0">
+        <div class="px-pad-sm py-stack-sm"><dt class="text-cap text-ink/60">Evaluadas</dt><dd class="num text-xl font-extrabold leading-tight">{{ ev.all.resolved }}</dd><dd class="text-cap text-ink/55">de {{ ev.all.total }} registradas<template v-if="ev.all.void"> · {{ ev.all.void }} canceladas</template></dd></div>
+        <div class="px-pad-sm py-stack-sm"><dt class="text-cap text-ink/60">Ganadas</dt><dd class="num text-xl font-extrabold leading-tight text-value">{{ ev.all.won }}</dd></div>
+        <div class="px-pad-sm py-stack-sm"><dt class="text-cap text-ink/60">Perdidas</dt><dd class="num text-xl font-extrabold leading-tight text-novalue">{{ ev.all.lost }}</dd></div>
+        <div class="px-pad-sm py-stack-sm"><dt class="text-cap text-ink/60">Acierto</dt><dd class="num text-xl font-extrabold leading-tight">{{ pct(ev.all.hitRate, 0) }}</dd><dd class="text-cap text-ink/55">Previsto {{ pct(ev.all.avgProbability, 0) }} · cuota media {{ ev.all.avgOdds?.toFixed(2) ?? '—' }}</dd></div>
+        <div class="px-pad-sm py-stack-sm"><dt class="text-cap text-ink/60">ROI teórico</dt><dd class="num text-xl font-extrabold leading-tight" :class="tone(ev.all.roi)">{{ ev.all.roi === null ? '—' : `${signed(ev.all.roi)}%` }}</dd><dd class="text-cap text-ink/55">Ganancia teórica {{ signedMoney(ev.profit) }}</dd></div>
+        <div class="px-pad-sm py-stack-sm"><dt class="text-cap text-ink/60">EV acumulado</dt><dd class="num text-xl font-extrabold leading-tight" :class="tone(ev.expectedProfit)">{{ signedMoney(ev.expectedProfit) }}</dd><dd class="text-cap text-ink/55">Lo que el modelo esperaba ganar con lo resuelto</dd></div>
       </dl>
 
-      <!-- ¿Hay ventaja o es azar? -->
-      <div class="card space-y-2 border-l-4 p-4 text-xs" :class="verdictClass">
-        <p class="font-bold">¿El modelo tiene ventaja o es suerte?</p>
-        <p class="text-ink/75">{{ verdictText }}</p>
-        <div class="h-2 w-full overflow-hidden rounded-full bg-tint" role="progressbar" :aria-valuenow="Math.min(ev.evidence.resolved, MIN_FOR_CONCLUSION)" aria-valuemin="0" :aria-valuemax="MIN_FOR_CONCLUSION" aria-label="Recomendaciones resueltas hacia la muestra mínima">
-          <div class="h-full rounded-full bg-primary" :style="{ width: `${Math.min(100, (ev.evidence.resolved / MIN_FOR_CONCLUSION) * 100)}%` }" />
+      <!-- Veredicto y ganancia acumulada, lado a lado en pantallas anchas -->
+      <div class="grid items-start gap-stack xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <div class="card space-y-stack-sm border-l-4 p-pad text-xs" :class="verdictClass">
+          <p class="font-bold">¿El modelo tiene ventaja o es suerte?</p>
+          <p class="text-ink/75">{{ verdictText }}</p>
+          <div class="h-2 w-full overflow-hidden rounded-full bg-tint" role="progressbar" :aria-valuenow="Math.min(ev.evidence.resolved, MIN_FOR_CONCLUSION)" aria-valuemin="0" :aria-valuemax="MIN_FOR_CONCLUSION" aria-label="Recomendaciones resueltas hacia la muestra mínima">
+            <div class="h-full rounded-full bg-primary" :style="{ width: `${Math.min(100, (ev.evidence.resolved / MIN_FOR_CONCLUSION) * 100)}%` }" />
+          </div>
+          <ul v-if="ev.evidence.resolved" class="grid gap-x-6 gap-y-1 text-ink/70 sm:grid-cols-2 xl:grid-cols-1">
+            <li>Aciertos: <strong class="num">{{ ev.evidence.hits }}</strong> de {{ ev.evidence.resolved }}</li>
+            <li>Esperados solo por azar a esas cuotas: <strong class="num">{{ ev.evidence.expectedHitsBreakEven }}</strong> ({{ pct(ev.evidence.breakEvenRate, 0) }})</li>
+            <li>Esperados según el modelo: <strong class="num">{{ ev.evidence.expectedHitsModel }}</strong> (si coincide con los reales, está bien calibrado)</li>
+            <li v-if="ev.evidence.pValue !== null">Probabilidad de acertar tanto o más por pura suerte: <strong class="num">{{ (ev.evidence.pValue * 100).toFixed(1) }}%</strong></li>
+            <li>
+              Racha actual:
+              <strong class="num" :class="ev.streaks.current > 0 ? 'text-value' : ev.streaks.current < 0 ? 'text-novalue' : ''">{{ ev.streaks.current > 0 ? `${ev.streaks.current} aciertos` : ev.streaks.current < 0 ? `${-ev.streaks.current} fallos` : '—' }}</strong>
+              · mejor {{ ev.streaks.bestWon }} aciertos · peor {{ ev.streaks.bestLost }} fallos
+            </li>
+          </ul>
         </div>
-        <ul v-if="ev.evidence.resolved" class="grid gap-x-6 gap-y-1 text-ink/70 sm:grid-cols-2">
-          <li>Aciertos: <strong class="num">{{ ev.evidence.hits }}</strong> de {{ ev.evidence.resolved }}</li>
-          <li>Esperados solo por azar a esas cuotas: <strong class="num">{{ ev.evidence.expectedHitsBreakEven }}</strong> ({{ pct(ev.evidence.breakEvenRate, 0) }})</li>
-          <li>Esperados según el modelo: <strong class="num">{{ ev.evidence.expectedHitsModel }}</strong> (si coincide con los reales, está bien calibrado)</li>
-          <li v-if="ev.evidence.pValue !== null">Probabilidad de acertar tanto o más por pura suerte: <strong class="num">{{ (ev.evidence.pValue * 100).toFixed(1) }}%</strong></li>
-          <li>
-            Racha actual:
-            <strong class="num" :class="ev.streaks.current > 0 ? 'text-value' : ev.streaks.current < 0 ? 'text-novalue' : ''">{{ ev.streaks.current > 0 ? `${ev.streaks.current} aciertos` : ev.streaks.current < 0 ? `${-ev.streaks.current} fallos` : '—' }}</strong>
-            · mejor {{ ev.streaks.bestWon }} aciertos · peor {{ ev.streaks.bestLost }} fallos
-          </li>
-        </ul>
+        <div class="card p-pad"><CumulativeProfitChart :points="points" /></div>
       </div>
 
-      </div>
-
-      <!-- GRÁFICOS -->
-      <div class="space-y-4">
-        <div class="card p-4"><CumulativeProfitChart :points="points" /></div>
-        <div class="grid gap-4 lg:grid-cols-2">
-          <div class="card p-4">
-            <CalibrationChart title="¿Lo que el modelo prevé es lo que ocurre?" :buckets="calBuckets" />
-            <p v-if="!ev.all.resolved" class="mt-2 text-xs text-ink/60">Se dibuja con las primeras recomendaciones resueltas.</p>
-          </div>
-          <div class="space-y-4">
-            <StreakDots :results="lastResults" />
-            <RoiBars title="Por mercado" :groups="ev.byMarket" :label-of="(k) => MARKET_NAME[k as keyof typeof MARKET_NAME] ?? k" />
-          </div>
+      <!-- Calibración, por mercado, por liga, últimos resultados y categorías: bloques pequeños en cuadrícula -->
+      <div class="grid items-start gap-stack md:grid-cols-2 xl:grid-cols-3">
+        <div class="card p-pad">
+          <CalibrationChart title="¿Lo que el modelo prevé es lo que ocurre?" :buckets="calBuckets" />
+          <p v-if="!ev.all.resolved" class="mt-2 text-xs text-ink/60">Se dibuja con las primeras recomendaciones resueltas.</p>
         </div>
+        <RoiBars title="Por mercado" :groups="ev.byMarket" :label-of="(k) => MARKET_NAME[k as keyof typeof MARKET_NAME] ?? k" />
         <RoiBars title="Por liga" :groups="ev.byLeague" />
+        <StreakDots :results="lastResults" />
         <RoiBars v-if="category === 'all' || evByCategory[1]!.total" title="Principales frente a estudio (todas las categorías)" :groups="evByCategory" :label-of="(k) => (k === 'main' ? 'Principales' : 'De estudio (valor 0–5%)')" />
       </div>
 
-      <details v-if="ev.all.resolved" class="card px-4 py-1">
-        <summary class="flex min-h-10 cursor-pointer items-center text-sm font-bold">Ver las cifras detalladas (tablas)</summary>
-        <div class="mt-3 grid gap-4 lg:grid-cols-2">
-          <div v-for="(t, i) in TABLES" :key="t.title" class="card" :class="i === 2 ? 'lg:col-span-2' : ''">
+      <details v-if="ev.all.resolved" class="card px-pad py-0.5">
+        <summary class="flex min-h-touch cursor-pointer items-center text-sm font-bold">Ver las cifras detalladas (tablas)</summary>
+        <div class="grid gap-stack pb-pad md:grid-cols-2 xl:grid-cols-3">
+          <div v-for="t in TABLES" :key="t.title" class="card overflow-x-auto">
             <table class="w-full table-auto text-left text-xs">
-              <caption class="px-4 pt-3 text-left text-sm font-bold">{{ t.title }}</caption>
+              <caption class="px-pad-sm pt-stack-sm text-left text-sm font-bold">{{ t.title }}</caption>
               <thead class="text-ink/60">
                 <tr>
-                  <th scope="col" class="px-4 py-2"><span class="sr-only">Grupo</span></th>
-                  <th scope="col" class="px-2 py-2 text-right font-semibold">Resueltas</th>
-                  <th scope="col" class="px-2 py-2 text-right font-semibold">Acierto</th>
-                  <th scope="col" class="hidden px-2 py-2 text-right font-semibold sm:table-cell">Previsto</th>
-                  <th scope="col" class="hidden px-2 py-2 text-right font-semibold sm:table-cell">Cuota</th>
-                  <th scope="col" class="px-4 py-2 text-right font-semibold">ROI</th>
+                  <th scope="col" class="px-pad-sm py-stack-sm"><span class="sr-only">Grupo</span></th>
+                  <th scope="col" class="px-2 py-stack-sm text-right font-semibold">Resueltas</th>
+                  <th scope="col" class="px-2 py-stack-sm text-right font-semibold">Acierto</th>
+                  <th scope="col" class="hidden px-2 py-stack-sm text-right font-semibold sm:table-cell">Previsto</th>
+                  <th scope="col" class="hidden px-2 py-stack-sm text-right font-semibold sm:table-cell">Cuota</th>
+                  <th scope="col" class="px-pad-sm py-stack-sm text-right font-semibold">ROI</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-line">
                 <tr v-for="g in t.rows" :key="g.key">
-                  <th scope="row" class="px-4 py-2 font-semibold">{{ t.label(g.key) }}</th>
-                  <td class="num px-2 py-2 text-right">{{ g.resolved }}<span class="text-ink/45">/{{ g.total }}</span></td>
-                  <td class="num px-2 py-2 text-right">{{ pct(g.hitRate, 0) }}</td>
-                  <td class="num hidden px-2 py-2 text-right text-ink/65 sm:table-cell">{{ pct(g.avgProbability, 0) }}</td>
-                  <td class="num hidden px-2 py-2 text-right text-ink/65 sm:table-cell">{{ g.avgOdds?.toFixed(2) ?? '—' }}</td>
-                  <td class="num px-4 py-2 text-right font-bold" :class="tone(g.roi)">{{ g.roi === null ? '—' : `${signed(g.roi)}%` }}</td>
+                  <th scope="row" class="px-pad-sm py-stack-sm font-semibold">{{ t.label(g.key) }}</th>
+                  <td class="num px-2 py-stack-sm text-right">{{ g.resolved }}<span class="text-ink/45">/{{ g.total }}</span></td>
+                  <td class="num px-2 py-stack-sm text-right">{{ pct(g.hitRate, 0) }}</td>
+                  <td class="num hidden px-2 py-stack-sm text-right text-ink/65 sm:table-cell">{{ pct(g.avgProbability, 0) }}</td>
+                  <td class="num hidden px-2 py-stack-sm text-right text-ink/65 sm:table-cell">{{ g.avgOdds?.toFixed(2) ?? '—' }}</td>
+                  <td class="num px-pad-sm py-stack-sm text-right font-bold" :class="tone(g.roi)">{{ g.roi === null ? '—' : `${signed(g.roi)}%` }}</td>
                 </tr>
               </tbody>
             </table>
@@ -216,58 +214,58 @@ const TABLES = computed<{ title: string; rows: Group[]; label: (k: string) => st
       </details>
 
       <!-- ACTIVAS: lo que todavía no está evaluado -->
-      <div class="space-y-4">
-        <div class="space-y-2">
+      <div class="space-y-stack">
+        <div class="space-y-stack-sm">
           <h3 class="flex flex-wrap items-center gap-2 text-sm font-bold">
-            Pendientes <span class="num rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-brand">{{ upcoming.length }}</span>
+            Pendientes <span class="num rounded-full bg-primary/10 px-2 py-0.5 text-cap text-brand">{{ upcoming.length }}</span>
             <span class="text-xs font-normal text-ink/55">· el partido aún no empieza</span>
           </h3>
-          <p v-if="!upcoming.length" class="rounded-lg bg-sunken p-3 text-xs text-ink/65">No hay recomendaciones pendientes. Pulsa Analizar en Picks para generar nuevas.</p>
-          <div v-else class="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+          <p v-if="!upcoming.length" class="rounded-ctl bg-sunken p-pad-sm text-xs text-ink/65">No hay recomendaciones pendientes. Pulsa Analizar en Picks para generar nuevas.</p>
+          <EvaluationTable v-else-if="isWide" :rows="upcoming" :now="now" />
+          <div v-else class="grid gap-stack">
             <RecommendationItem v-for="r in upcoming" :key="r.id" :rec="r" :now="now" />
           </div>
         </div>
 
-        <div v-if="live.length" class="space-y-2">
+        <div v-if="live.length" class="space-y-stack-sm">
           <h3 class="flex flex-wrap items-center gap-2 text-sm font-bold">
-            En curso <span class="num rounded-full bg-marginal/15 px-2 py-0.5 text-[11px] text-marginal">{{ live.length }}</span>
+            En curso <span class="num rounded-full bg-marginal/15 px-2 py-0.5 text-cap text-marginal">{{ live.length }}</span>
             <span class="text-xs font-normal text-ink/55">· ya empezaron; esperando el resultado</span>
           </h3>
-          <div class="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+          <EvaluationTable v-if="isWide" :rows="live" :now="now" />
+          <div v-else class="grid gap-stack">
             <RecommendationItem v-for="r in live" :key="r.id" :rec="r" :now="now" />
           </div>
         </div>
       </div>
 
       <!-- FINALIZADAS: ya evaluadas -->
-      <div class="space-y-3 border-t border-line pt-5">
+      <div class="space-y-stack-sm border-t border-line pt-stack">
         <h3 class="flex flex-wrap items-center gap-2 text-sm font-bold">
-          Finalizadas <span class="num rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-brand">{{ done.length }}</span>
+          Finalizadas <span class="num rounded-full bg-primary/10 px-2 py-0.5 text-cap text-brand">{{ done.length }}</span>
           <span class="text-xs font-normal text-ink/55">· ya evaluadas contra el resultado real</span>
         </h3>
-        <!-- Lista de finalizadas -->
-        <div class="space-y-2">
-          <div class="inline-flex flex-wrap rounded-lg border border-line bg-sunken p-0.5" role="group" aria-label="Filtrar finalizadas">
-            <button
-              v-for="f in FILTERS"
-              :key="f.v"
-              type="button"
-              class="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors"
-              :class="filter === f.v ? 'bg-surface text-brand shadow-sm' : 'text-ink/60 hover:text-ink'"
-              :aria-pressed="filter === f.v"
-              @click="filter = f.v; limit = 12"
-            >
-              {{ f.l }} <span class="num text-[10px] text-ink/50">{{ countOf(f.v) }}</span>
-            </button>
-          </div>
-          <p v-if="!doneShown.length" class="rounded-lg bg-sunken p-3 text-xs text-ink/65">
-            {{ done.length ? 'No hay recomendaciones con ese estado.' : 'Todavía no hay recomendaciones finalizadas. Aparecerán aquí solas cuando terminen sus partidos.' }}
-          </p>
-          <div v-else class="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
-            <RecommendationItem v-for="r in doneVisible" :key="r.id" :rec="r" :now="now" />
-          </div>
-          <button v-if="doneShown.length > doneVisible.length" type="button" class="btn !min-h-9 text-xs" @click="limit += 12">Ver más ({{ doneShown.length - doneVisible.length }})</button>
+        <div class="inline-flex flex-wrap rounded-ctl border border-line bg-sunken p-0.5" role="group" aria-label="Filtrar finalizadas">
+          <button
+            v-for="f in FILTERS"
+            :key="f.v"
+            type="button"
+            class="inline-flex min-h-touch items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors"
+            :class="filter === f.v ? 'bg-surface text-brand shadow-sm' : 'text-ink/60 hover:text-ink'"
+            :aria-pressed="filter === f.v"
+            @click="filter = f.v; limit = 12"
+          >
+            {{ f.l }} <span class="num text-cap text-ink/50">{{ countOf(f.v) }}</span>
+          </button>
         </div>
+        <p v-if="!doneShown.length" class="rounded-ctl bg-sunken p-pad-sm text-xs text-ink/65">
+          {{ done.length ? 'No hay recomendaciones con ese estado.' : 'Todavía no hay recomendaciones finalizadas. Aparecerán aquí solas cuando terminen sus partidos.' }}
+        </p>
+        <EvaluationTable v-else-if="isWide" :rows="doneVisible" :now="now" />
+        <div v-else class="grid gap-stack">
+          <RecommendationItem v-for="r in doneVisible" :key="r.id" :rec="r" :now="now" />
+        </div>
+        <button v-if="doneShown.length > doneVisible.length" type="button" class="btn text-xs" @click="limit += 12">Ver más ({{ doneShown.length - doneVisible.length }})</button>
       </div>
     </template>
   </section>

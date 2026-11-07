@@ -64,27 +64,30 @@ async function save() {
     No se pudo cargar tu perfil.
   </p>
 
-  <form v-else class="space-y-4" @submit.prevent="save">
-    <section class="card space-y-3 p-4">
+  <form v-else class="grid items-start gap-stack lg:grid-cols-2" @submit.prevent="save">
+    <div class="space-y-stack">
+    <section class="card space-y-stack-sm p-pad">
       <h2 class="font-bold">Criterios de recomendación</h2>
       <p class="text-xs text-ink/60">
         Definen qué selecciones registra el modelo como recomendaciones. Cambiarlos no altera lo ya registrado: cada recomendación conserva los
         criterios con los que se generó.
       </p>
 
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Probabilidad mínima del modelo (%)</span>
-        <input v-model.number="form.min_probability_pct" type="number" min="50" max="99" step="1" required class="field" />
-      </label>
+      <div class="grid gap-stack-sm sm:grid-cols-2">
+        <label class="block space-y-1">
+          <span class="text-xs font-semibold">Probabilidad mínima del modelo (%)</span>
+          <input v-model.number="form.min_probability_pct" type="number" min="50" max="99" step="1" required class="field" />
+        </label>
 
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Valor esperado mínimo para ser recomendación principal (%)</span>
-        <input v-model.number="form.threshold_pct" type="number" step="0.1" required class="field" />
-        <span class="block text-[11px] text-ink/55">Entre 0% y este valor se registran como «de estudio», aparte de las principales.</span>
-      </label>
+        <label class="block space-y-1">
+          <span class="text-xs font-semibold">Valor esperado mínimo para ser recomendación principal (%)</span>
+          <input v-model.number="form.threshold_pct" type="number" step="0.1" required class="field" />
+          <span class="block text-cap text-ink/55">Entre 0% y este valor se registran como «de estudio», aparte de las principales.</span>
+        </label>
+      </div>
     </section>
 
-    <section class="card space-y-3 p-4">
+    <section class="card space-y-stack-sm p-pad">
       <h2 class="font-bold">Unidad teórica</h2>
       <p class="text-xs text-ink/60">
         La app no maneja tu dinero ni registra apuestas: tú apuestas directamente en Betano. Para medir el modelo se supone una unidad fija por
@@ -100,16 +103,17 @@ async function save() {
           <input v-model="form.currency" type="text" maxlength="3" required class="field uppercase" />
         </label>
       </div>
-      <p v-if="!hasUnit" class="text-[11px] text-marginal">
+      <p v-if="!hasUnit" class="text-cap text-marginal">
         La unidad se podrá cambiar cuando se aplique la última migración de la base de datos; mientras tanto se usa 10.
       </p>
     </section>
+    </div>
 
-    <section class="card space-y-3 p-4">
+    <section class="card space-y-stack-sm p-pad">
       <h2 class="font-bold">Ligas y mercados activos</h2>
 
-      <fieldset class="space-y-1">
-        <legend class="text-xs font-semibold">Ligas</legend>
+      <fieldset class="grid gap-x-4 sm:grid-cols-2">
+        <legend class="mb-1 text-xs font-semibold">Ligas</legend>
         <label
           v-for="l in leagues.data.value ?? []"
           :key="l.id"
@@ -120,8 +124,8 @@ async function save() {
         </label>
       </fieldset>
 
-      <fieldset class="space-y-1">
-        <legend class="text-xs font-semibold">Mercados</legend>
+      <fieldset class="grid gap-x-4 sm:grid-cols-2">
+        <legend class="mb-1 text-xs font-semibold">Mercados</legend>
         <label v-for="m in MARKETS" :key="m.value" class="flex min-h-touch items-center gap-3">
           <input v-model="form.active_markets" type="checkbox" :value="m.value" class="h-5 w-5 accent-primary" />
           {{ m.label }}
@@ -129,12 +133,12 @@ async function save() {
       </fieldset>
     </section>
 
-    <p v-if="update.isError.value" role="alert" class="text-xs font-semibold text-novalue">
+    <p v-if="update.isError.value" role="alert" class="text-xs font-semibold text-novalue lg:col-span-2">
       No se pudo guardar. Inténtalo de nuevo.
     </p>
-    <p v-if="saved && !update.isPending.value" class="text-xs font-semibold text-value">Cambios guardados.</p>
+    <p v-if="saved && !update.isPending.value" class="text-xs font-semibold text-value lg:col-span-2">Cambios guardados.</p>
 
-    <button type="submit" class="btn btn-primary w-full" :disabled="update.isPending.value">
+    <button type="submit" class="btn btn-primary w-full lg:col-span-2 lg:w-auto lg:justify-self-end lg:px-8" :disabled="update.isPending.value">
       {{ update.isPending.value ? 'Guardando…' : 'Guardar cambios' }}
     </button>
   </form>

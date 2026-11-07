@@ -25,7 +25,7 @@ const gap = (b: Bucket) => (b.actual! - b.predicted!);
   <figure class="space-y-2">
     <figcaption class="flex flex-wrap items-center justify-between gap-2">
       <span class="text-sm font-bold">{{ title }}</span>
-      <span class="flex items-center gap-3 text-[11px] text-ink/65">
+      <span class="flex items-center gap-3 text-cap text-ink/65">
         <span class="inline-flex items-center gap-1.5">
           <svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="rgb(var(--c-surface))" stroke="var(--chart-context)" stroke-width="2" /></svg>Previsto (anillo)
         </span>

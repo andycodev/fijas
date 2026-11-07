@@ -65,7 +65,7 @@ const tipLeft = computed(() => (hover.value === null ? 0 : (xs.value(hover.value
   <figure class="space-y-2">
     <figcaption class="flex flex-wrap items-center justify-between gap-2">
       <span class="text-sm font-bold">Ganancia teórica acumulada</span>
-      <span class="flex items-center gap-4 text-[11px] text-ink/65">
+      <span class="flex items-center gap-4 text-cap text-ink/65">
         <span class="inline-flex items-center gap-1.5"><svg width="22" height="8" aria-hidden="true"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--chart-real)" stroke-width="2.5" stroke-linecap="round" /></svg>Real</span>
         <span class="inline-flex items-center gap-1.5"><svg width="22" height="8" aria-hidden="true"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--chart-context)" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round" /></svg>Esperada por el modelo</span>
       </span>
@@ -107,7 +107,7 @@ const tipLeft = computed(() => (hover.value === null ? 0 : (xs.value(hover.value
         </g>
       </svg>
 
-      <div v-if="hp" class="pointer-events-none absolute top-1 z-10 w-52 rounded-lg border border-line bg-surface p-2 text-[11px] shadow-card"
+      <div v-if="hp" class="pointer-events-none absolute top-1 z-10 w-52 rounded-lg border border-line bg-surface p-2 text-cap shadow-card"
         :style="{ left: `${Math.min(Math.max(tipLeft, 18), 72)}%`, transform: 'translateX(-50%)' }" role="status">
         <p class="truncate font-bold">#{{ hp.n }} · {{ hp.row.match?.home?.name }} vs {{ hp.row.match?.away?.name }}</p>
         <p class="text-ink/65">{{ selectionLabel(hp.row.market, hp.row.side, Number(hp.row.line)) }} · cuota {{ Number(hp.row.odds).toFixed(2) }} ·
@@ -128,6 +128,6 @@ const tipLeft = computed(() => (hover.value === null ? 0 : (xs.value(hover.value
     </div>
 
     <button v-if="points.length >= 2" type="button" class="text-xs font-semibold text-brand underline" @click="showTable = !showTable">{{ showTable ? 'Ver gráfico' : 'Ver como tabla' }}</button>
-    <p class="text-[11px] text-ink/55">Cada recomendación cuenta una unidad fija (la de tu perfil). No hay dinero real en juego.</p>
+    <p class="text-cap text-ink/55">Cada recomendación cuenta una unidad fija (la de tu perfil). No hay dinero real en juego.</p>
   </figure>
 </template>

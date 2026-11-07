@@ -49,9 +49,9 @@ const localHour = computed(() =>
 <template>
   <FootballLoader v-if="isLoading" size="sm" label="Cargando…" />
 
-  <div v-else class="space-y-4">
+  <div v-else class="grid items-start gap-stack lg:grid-cols-2">
     <!-- Proveedor y consumo real -->
-    <section class="card space-y-3 p-4" aria-labelledby="usage-title">
+    <section class="card space-y-stack-sm p-pad lg:col-span-2" aria-labelledby="usage-title">
       <div class="flex items-start justify-between gap-3">
         <div>
           <h2 id="usage-title" class="font-bold">Consumo de API</h2>
@@ -75,18 +75,18 @@ const localHour = computed(() =>
       </p>
 
       <template v-else>
-        <dl class="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
-          <div class="rounded-md border border-line p-2"><dt class="text-ink/60">Límite diario</dt><dd class="text-lg font-extrabold">{{ limit ?? '—' }}</dd></div>
-          <div class="rounded-md border border-line p-2"><dt class="text-ink/60">Utilizadas</dt><dd class="text-lg font-extrabold">{{ used ?? '—' }}</dd></div>
-          <div class="rounded-md border border-line p-2"><dt class="text-ink/60">Restantes</dt><dd class="text-lg font-extrabold">{{ remaining ?? '—' }}</dd></div>
-          <div class="rounded-md border border-line p-2"><dt class="text-ink/60">Consumo</dt><dd class="text-lg font-extrabold">{{ pct }}%</dd></div>
+        <dl class="grid grid-cols-4 divide-x divide-line overflow-hidden rounded-ctl border border-line text-xs">
+          <div class="px-pad-sm py-stack-sm"><dt class="text-ink/60">Límite diario</dt><dd class="text-lg font-extrabold leading-tight">{{ limit ?? '—' }}</dd></div>
+          <div class="px-pad-sm py-stack-sm"><dt class="text-ink/60">Utilizadas</dt><dd class="text-lg font-extrabold leading-tight">{{ used ?? '—' }}</dd></div>
+          <div class="px-pad-sm py-stack-sm"><dt class="text-ink/60">Restantes</dt><dd class="text-lg font-extrabold leading-tight">{{ remaining ?? '—' }}</dd></div>
+          <div class="px-pad-sm py-stack-sm"><dt class="text-ink/60">Consumo</dt><dd class="text-lg font-extrabold leading-tight">{{ pct }}%</dd></div>
         </dl>
 
         <div>
           <div class="h-3 w-full overflow-hidden rounded-full bg-line" role="progressbar" :aria-valuenow="pct" aria-valuemin="0" aria-valuemax="100" aria-label="Consumo de solicitudes de hoy">
             <div class="h-full rounded-full transition-all" :class="BAR_CLASS[level]" :style="{ width: `${pct}%` }" />
           </div>
-          <div class="mt-1 flex justify-between text-[11px] text-ink/50"><span>70%</span><span>85%</span><span>95%</span></div>
+          <div class="mt-1 flex justify-between text-cap text-ink/50"><span>70%</span><span>85%</span><span>95%</span></div>
         </div>
 
         <p v-if="LEVEL_MESSAGE[level]" role="alert" class="text-xs font-semibold" :class="level === 'watch' || level === 'high' ? 'text-marginal' : 'text-novalue'">
@@ -107,7 +107,7 @@ const localHour = computed(() =>
     </section>
 
     <!-- Renovación -->
-    <section class="card space-y-2 p-4" aria-labelledby="renewal-title">
+    <section class="card space-y-stack-sm p-pad" aria-labelledby="renewal-title">
       <h2 id="renewal-title" class="font-bold">Renovación del límite</h2>
       <ul class="list-disc space-y-1 pl-4 text-xs text-ink/80">
         <li><strong>Período:</strong> el proveedor informa el límite como <em>diario</em> (campo limit_day = {{ limit ?? 100 }}).</li>
@@ -126,7 +126,7 @@ const localHour = computed(() =>
     </section>
 
     <!-- Configuración -->
-    <form class="card space-y-3 p-4" @submit.prevent="save">
+    <form class="card space-y-stack-sm p-pad" @submit.prevent="save">
       <h2 class="font-bold">Optimización y configuración</h2>
 
       <label class="block space-y-1">

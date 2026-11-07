@@ -3,7 +3,7 @@ import { ComputerDesktopIcon, MoonIcon, SunIcon } from '@heroicons/vue/24/outlin
 import { useThemeStore, type ThemeMode } from '../stores/theme';
 
 // compact: solo íconos (barra superior del celular); si no, íconos con texto.
-defineProps<{ compact?: boolean; block?: boolean }>();
+defineProps<{ compact?: boolean; block?: boolean; stack?: boolean }>();
 
 const theme = useThemeStore();
 const options: { mode: ThemeMode; label: string; icon: typeof SunIcon }[] = [
@@ -14,7 +14,7 @@ const options: { mode: ThemeMode; label: string; icon: typeof SunIcon }[] = [
 </script>
 
 <template>
-  <div class="rounded-lg border border-line bg-sunken p-0.5" :class="block ? 'grid w-full grid-cols-3' : 'inline-flex'" role="radiogroup" aria-label="Tema de la aplicación">
+  <div class="rounded-ctl border border-line bg-sunken p-0.5" :class="stack ? 'flex flex-col' : block ? 'grid w-full grid-cols-3' : 'inline-flex'" role="radiogroup" aria-label="Tema de la aplicación">
     <button
       v-for="o in options"
       :key="o.mode"

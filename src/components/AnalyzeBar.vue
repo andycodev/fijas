@@ -65,15 +65,15 @@ const apiPct = computed(() => (apiLimit.value && apiUsed.value !== null ? usageP
 </script>
 
 <template>
-  <section class="card mb-3 space-y-2 p-3" aria-label="Análisis">
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <button class="btn btn-primary min-w-36" :disabled="running" @click="onAnalyze">
+  <section class="card mb-stack space-y-stack-sm p-pad-sm" aria-label="Análisis">
+    <div class="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-stack-sm md:grid-cols-[auto_1fr_14rem]">
+      <button class="btn btn-primary col-start-1 row-start-1 min-w-32" :disabled="running" @click="onAnalyze">
         <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': running }" aria-hidden="true" />
         {{ running ? 'Analizando…' : 'Analizar' }}
       </button>
 
       <!-- Estado del último análisis -->
-      <div class="min-w-0 flex-1 text-xs" role="status" aria-live="polite">
+      <div class="col-span-2 row-start-2 min-w-0 text-xs md:col-span-1 md:col-start-2 md:row-start-1" role="status" aria-live="polite">
         <template v-if="running">
           <p class="font-bold text-brand">Análisis iniciado{{ status.startedAt ? ` a las ${fmtTime(status.startedAt)}` : '' }}…</p>
           <p class="text-ink/60">Aún no terminó: no se considera completado hasta que finalice.</p>
@@ -86,7 +86,7 @@ const apiPct = computed(() => (apiLimit.value && apiUsed.value !== null ? usageP
           <p class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span class="inline-flex items-center gap-1 font-bold"><CheckCircleIcon class="h-4 w-4 text-value" aria-hidden="true" />Último análisis completado
               {{ status.analyzedToday ? `hoy a las ${fmtTime(status.lastSuccessAt)}` : `el ${fmtDay(status.lastSuccessAt)} a las ${fmtTime(status.lastSuccessAt)}` }}</span>
-            <span v-if="status.analyzedToday" class="rounded-full bg-value/15 px-2 py-0.5 text-[10px] font-bold text-value">Ya analizado hoy</span>
+            <span v-if="status.analyzedToday" class="rounded-full bg-value/15 px-2 py-0.5 text-cap font-bold text-value">Ya analizado hoy</span>
           </p>
           <p class="text-ink/60">
             <template v-if="status.fresh">Datos vigentes hasta las {{ fmtTime(status.validUntil) }} (cada {{ interval }} min).</template>
@@ -97,7 +97,7 @@ const apiPct = computed(() => (apiLimit.value && apiUsed.value !== null ? usageP
       </div>
 
       <!-- Consumo de API (cifras del proveedor) -->
-      <div v-if="api" class="w-full text-xs md:w-56">
+      <div v-if="api" class="col-start-2 row-start-1 min-w-0 text-xs md:col-start-3">
         <p class="flex items-baseline justify-between">
           <span class="text-ink/60">API hoy</span>
           <span class="num font-bold">{{ apiUsed }}/{{ apiLimit ?? '?' }}<span class="font-normal text-ink/55"> · quedan {{ apiLimit !== null && apiUsed !== null ? apiLimit - apiUsed : '?' }}</span></span>
@@ -105,7 +105,7 @@ const apiPct = computed(() => (apiLimit.value && apiUsed.value !== null ? usageP
         <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-tint" role="progressbar" :aria-valuenow="apiPct" aria-valuemin="0" aria-valuemax="100" aria-label="Consumo de la API de hoy">
           <div class="h-full rounded-full" :class="apiLevel === 'ok' ? 'bg-primary' : apiLevel === 'critical' || apiLevel === 'exhausted' ? 'bg-novalue' : 'bg-marginal'" :style="{ width: `${apiPct}%` }" />
         </div>
-        <p class="mt-0.5 text-[11px] text-ink/55">
+        <p class="mt-0.5 text-cap text-ink/55">
           <template v-if="api.reset_observed_at">Reinicio observado: {{ fmtDay(api.reset_observed_at) }} {{ fmtTime(api.reset_observed_at) }}. </template>
           <template v-else>La API no informa cuándo se renueva. </template>
           <RouterLink :to="{ name: 'settings-api' }" class="font-semibold text-brand underline">Detalle</RouterLink>
@@ -131,8 +131,8 @@ const apiPct = computed(() => (apiLimit.value && apiUsed.value !== null ? usageP
         gasta solicitudes de la API (tienes un máximo diario) y probablemente no cambie nada. ¿Quieres forzarlo?
       </p>
       <div class="mt-2 flex gap-2">
-        <button class="btn !min-h-9 text-xs" @click="askForce = false">Cancelar</button>
-        <button class="btn btn-primary !min-h-9 text-xs" @click="force">Forzar análisis</button>
+        <button class="btn !min-h-touch text-xs" @click="askForce = false">Cancelar</button>
+        <button class="btn btn-primary !min-h-touch text-xs" @click="force">Forzar análisis</button>
       </div>
     </div>
 

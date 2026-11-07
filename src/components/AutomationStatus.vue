@@ -22,11 +22,11 @@ const SHORT: Record<AutomationRun['kind'], string> = { analyze: 'Análisis', res
 </script>
 
 <template>
-  <section v-if="runsQ.data.value" :class="embedded ? 'border-t border-line pt-2' : 'card p-2.5'" class="text-xs" aria-label="Actividad automática">
+  <section v-if="runsQ.data.value" :class="embedded ? 'border-t border-line pt-2' : 'card p-pad-sm'" class="text-xs" aria-label="Actividad automática">
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
       <span class="inline-flex items-center gap-1">
         <span class="font-bold">Automático</span>
-        <button v-if="runs.length" type="button" class="inline-flex min-h-8 items-center gap-0.5 font-semibold text-brand" :aria-expanded="open" aria-label="Ver detalle de las ejecuciones automáticas" @click="open = !open">
+        <button v-if="runs.length" type="button" class="inline-flex min-h-touch items-center gap-0.5 font-semibold text-brand" :aria-expanded="open" aria-label="Ver detalle de las ejecuciones automáticas" @click="open = !open">
           Detalle <ChevronDownIcon class="h-4 w-4 transition-transform" :class="{ 'rotate-180': open }" aria-hidden="true" />
         </button>
       </span>
